@@ -16,6 +16,7 @@ def ap_pyomo_model():
     model.sJobs = Set()
     model.sPositions = Set()
     model.sPlanes = Set()
+    model.sClients = Set()
     model.sPositionsInterefence = Set(dimen=2)
     model.sPosPosSlotSlot = Set(dimen=4)
 
@@ -28,6 +29,9 @@ def ap_pyomo_model():
     model.pJobDuration = Param(model.sJobs, mutable=True)
     model.pJobPrecedesJob = Param(model.sJobs, model.sJobs, mutable=True)
     model.pPlaneOfJob = Param(model.sJobs)
+    model.pAirplaneOfClient = Param(model.sClients, model.sPlanes)
+    model.pLastJobOfPlane = Param(model.sJobs, model.sPlanes, mutable=True)
+    model.pLateFinishOfPlane = Param(model.sPlanes, mutable=True)
 
     # Variables
     model.v01JobInSlot = Var(model.sSlots, model.sPositions, model.sJobs, domain=Binary)
@@ -40,6 +44,9 @@ def ap_pyomo_model():
     model.vDurationSlotForJob = Var(model.sSlots, model.sPositions, model.sJobs, within=NonNegativeReals)
     model.vStartSlotForJob = Var(model.sSlots, model.sPositions, model.sJobs, within=NonNegativeReals)
     model.vFinishSlotForJob = Var(model.sSlots, model.sPositions, model.sJobs, within=NonNegativeReals)
+    model.vClientPostion = Var(model.sClients, model.sPositions, domain=Binary)
+    model.vClientDelay = Var(model.sClients, within=NonNegativeReals)
+    model.vPlaneDelay = Var(model.sPlanes, within=NonNegativeReals)
     # Global start and finish time of each job
     model.vStartJob = Var(model.sJobs, within=NonNegativeReals)  # s_j: global start time of job j
     model.vFinishJob = Var(model.sJobs, within=NonNegativeReals)  # f_j: global finishing time of job j
@@ -65,83 +72,99 @@ def ap_pyomo_model():
     def fc04_NullFinishTimeIfNotInSlot(model, s, p, j):
         return model.vFinishSlotForJob[s, p, j] <= model.pHorizon * model.v01JobInSlot[s, p, j]
 
-    # Rule: Ec. cJobDuration - The total duration of a job is the sum of the duration of all corresponding slots
-    def fc05_JobDuration(model, j):
-        return sum(model.vDurationSlotForJob[s, p, j] for s in model.sSlots for p in model.sPositions) == \
-               model.pJobDuration[j]
+    # # Rule: Ec. cJobDuration - The total duration of a job is the sum of the duration of all corresponding slots
+    # def fc05_JobDuration(model, j):
+    #     return sum(model.vDurationSlotForJob[s, p, j] for s in model.sSlots for p in model.sPositions) == \
+    #            model.pJobDuration[j]
 
     # Rule: Ec. startGlobalLowerBoundNoCommas - Global job start time constraint
     def fc06_GlobalStartConstraint(model, s, p, j):
         if model.v01JobInSlot[s, p, j].fixed and model.v01JobInSlot[s, p, j].value == 0:
             return Constraint.Skip
-        
-        # s_j ≤ s^j_spj + M(1 - x_spj)
-        return model.vStartJob[j] <= model.vStartSlotForJob[s, p, j] + model.pHorizon * (1 - model.v01JobInSlot[s, p, j])
+
+        # s_j = ∑_p∑_s (s^j_spj) 
+        return model.vStartJob[j] == sum(model.vStartSlotForJob[s, p, j] for p in model.sPositions for s in model.sSlots)
 
     # Rule: Ec. finishGlobalUpperBoundNoCommas - Global job finish time constraint
     def fc07_GlobalFinishConstraint(model, s, p, j):
         if model.v01JobInSlot[s, p, j].fixed and model.v01JobInSlot[s, p, j].value == 0:
             return Constraint.Skip
-        
-        # f_j ≥ f^j_spj - M(1 - x_spj)
-        return model.vFinishJob[j] >= model.vFinishSlotForJob[s, p, j] - model.pHorizon * (1 - model.v01JobInSlot[s, p, j])
+
+        # f_j = ∑_p∑_s (f^j_spj) 
+        return model.vFinishJob[j] == sum(model.vFinishSlotForJob[s, p, j] for p in model.sPositions for s in model.sSlots)
 
     # Rule: Ec. noNegativeDurationNoCommas - Start time of job must be <= finish time of job
     def fc08_StartFinishRelation(model, j):
         # s_j ≤ f_j
         return model.vStartJob[j] <= model.vFinishJob[j]
+    # Rule: Ec. calculating delays of planes
+    def plane_delay_rule(model, r):
+        # para cada (j,r) con L[j,r]=1, impongo γ_r ≥ f[j] - T[r]
+        return model.vPlaneDelay[r] >= sum(
+            (model.vFinishJob[j] - model.pLateFinishOfPlane[r]) * model.pLastJobOfPlane[j, r]
+            for j in model.sJobs
+        )
+    model.PlaneDelayConstr = Constraint(model.sPlanes, rule=plane_delay_rule)
 
+    # Rule: Ec. calculating delays of clients
+   def client_delay_rule(model, c):
+       return model.vClientDelay[c] == sum(
+           model.vPlaneDelay[r]*model.pAirplaneOfClient[c,r] for r in model.sPlanes
+       )
+       model.ClientDelayConstr = Constraint(model.sClients, rule=client_delay_rule)
     # Rule: Ec. slotStartTimeFromJobs - The starting time of a slot
-    def fc09_SlotStartTime(model, s, p):
+    def fc11_SlotStartTime(model, s, p):
         return model.vStartSlot[s, p] == sum(model.vStartSlotForJob[s, p, j] for j in model.sJobs)
 
     # Rule: Ec. slotFinishTimeFromJobs - The finishing time of a slot
-    def fc10_SlotFinishTime(model, s, p):
+    def fc12_SlotFinishTime(model, s, p):
         return model.vFinishSlot[s, p] == sum(model.vFinishSlotForJob[s, p, j] for j in model.sJobs)
 
     # Rule: Ec. SlotSequence - Slot sequence within each position
-    def fc11_SlotSequence(model, s, s2, p):
+    def fc13_SlotSequence(model, s, s2, p):
         return model.vStartSlot[s, p] >= model.vFinishSlot[s2, p]
 
     # Rule: Ec. jobPrecedence - Job sequence (jobs are sequenced)
-    def fc12_JobSequence(model, j, j2):
+    def fc14_JobSequence(model, j, j2):
         return model.vStartJob[j2] >= model.vFinishJob[j]
 
     # Rule: Ec. noEmptySlots - Consecutive slots - a slot is not used unless all previous ones have been used
-    def fc13_ConsecutiveSlots(model, s, p):
+    def fc15_ConsecutiveSlots(model, s, p):
         # Skip constraint for the first slot (s=1)
         if model.sSlots.ord(s) == 1:
             return Constraint.Skip
-        
+
         # Get the previous slot
         prev_s = list(model.sSlots)[model.sSlots.ord(s) - 2]  # -1 for 0-based indexing, -1 for previous
-        
-        # Sum of job assignments in current slot must be less than or equal to sum in previous slot
-        return sum(model.v01JobInSlot[s, p, j] for j in model.sJobs) <= sum(model.v01JobInSlot[prev_s, p, j] for j in model.sJobs)
 
-    # Rule: Ec. 15 - A job can be assigned to a single slot of a position
-    def fc14_SingleSlotPerJob(model, j):
-        # ∑∑ x_jsp ≤ 1 ∀j ∈ J
+        # Sum of job assignments in current slot must be equal to sum in previous slot
+        return sum(model.v01JobInSlot[s, p, j] for j in model.sJobs) == sum(model.v01JobInSlot[prev_s, p, j] for j in model.sJobs)
+
+    # Rule: Ec. - A job can be assigned to a single slot of a position
+    def fc16_SingleSlotPerJob(model, j):
+        # ∑∑ x_jsp = 1 ∀j ∈ J
         return sum(model.v01JobInSlot[s, p, j] 
-               for s in model.sSlots for p in model.sPositions) <= 1
+               for s in model.sSlots for p in model.sPositions) == 1
 
-    # Rule: Ec. 16 - If a job is not assigned to a slot of a position, the duration of that job in that slot is zero
-    def fc15_DurationIfNotAssigned(model, s, p, j):
-        # d^j_spj ≤ D_j·x_spj, ∀s ∈ S, p ∈ P, j ∈ J
-        return model.vDurationSlotForJob[s, p, j] <= model.pJobDuration[j] * model.v01JobInSlot[s, p, j]
-    
-    # Rule: Ec. cPlaneSlotAssignment - Airplane-job consistency assignment
-    def fc16_PlaneSlotAssignment(model, s, p, r):
-        return model.v01PlaneInSlot[s, p, r] == sum(model.v01JobInSlot[s, p, j]
-                                                    for j in model.sJobs if model.pPlaneOfJob[j] == r)
-
-    # Rule: Airplane with some job in a position
-    def fc17_PlaneInPosition(model, s, p, r):
-        return model.v01PlaneInPosition[r, p] >= model.v01PlaneInSlot[s, p, r]# Rule: Ec. cPlaneSlotAssignment - Airplane-job consistency assignment
+    # Rule: Ec. - If a job is not assigned to a slot of a position, the duration of that job in that slot is zero
+    def fc17_DurationIfNotAssigned(model, s, p, j):
+        # d^j_spj = D_j·x_spj, ∀s ∈ S, p ∈ P, j ∈ J
+        return model.vDurationSlotForJob[s, p, j] == model.pJobDuration[j] * model.v01JobInSlot[s, p, j]
 
     # Rule: The duration of a slot is that of the slot assigned to that job
     def fc18_SlotDuration(model, s, p):
         return model.vDurationSlot[s, p] == sum(model.vDurationSlotForJob[s, p, j] for j in model.sJobs)
+
+    # Rule: Ec. cPlaneSlotAssignment - Airplane-job consistency assignment
+    def fc19_PlaneSlotAssignment(model, s, p, r):
+        return model.v01PlaneInSlot[s, p, r] == sum(model.v01JobInSlot[s, p, j]
+                                                    for j in model.sJobs if model.pPlaneOfJob[j] == r)
+
+    # Rule: Airplane with some job in a position
+    def fc20_PlaneInPosition(model, s, p, r):
+        return model.v01PlaneInPosition[r, p] >= model.v01PlaneInSlot[s, p, r]# Rule: Ec. cPlaneSlotAssignment - Airplane-job consistency assignment
+
+#reglas 20 y 21 añadir
 
     # Rule: Ec. fcBetaDefinion1 - Computing if starting time of slot s in position p is earlier than starting time of slot s' in position p'
     def fc19_BetaDefinition1(model, s, s2, p, p2):
@@ -155,7 +178,7 @@ def ap_pyomo_model():
     def fc21_InterferenceExists(model, s, s2, p, p2):
         return 1 + model.v01Alpha[s, s2, p, p2] >= model.v01BetaS[s, s2, p, p2] + model.v01BetaF[s, s2, p, p2]
 
-    # Rule: Ec. PlaneSwitchInPOsition - Switching planes between consecutive slots
+    # Rule: Ec. PlaneSwitchInPosition - Switching planes between consecutive slots
     def fc22_SwitchingPlanes(model, p, s, s2, r, r2):
         return 1 + model.v01SwitchPlanes[s, p] >= model.v01PlaneInSlot[s, p, r] + model.v01PlaneInSlot[s2, p, r2]
 
@@ -164,7 +187,7 @@ def ap_pyomo_model():
         # Skip if it's the same slot and position
         if s == s2 or p == p2:
             return Constraint.Skip
-        
+
         # 1 + βS_{ss'pp'} + βF_{ss'pp'} >= x_{spj} + x_{s'p'j}
         # This ensures that if the same job is assigned to different slots,
         # either one starts after the other finishes or vice versa
@@ -186,54 +209,54 @@ def ap_pyomo_model():
 
     print("Generating c02_SlotJobDuration constraint - Eq. cSlotJobDuration")
     model.c02_SlotJobDuration = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc02_SlotJobDuration)
-    
+
     print("Generating c03_NullStartTimeIfNotInSlot constraint - Eq. nullStartIfNotAssigned")
     model.c03_NullStartTimeIfNotInSlot = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc03_NullStartTimeIfNotInSlot)
 
     print("Generating c04_NullFinishTimeIfNotInSlot constraint - Eq. nullFinishIfNotAssigned")
     model.c04_NullFinishTimeIfNotInSlot = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc04_NullFinishTimeIfNotInSlot)
 
-    print("Generating c05_JobDuration constraint - Eq. cJobDuration")
-    model.c05_JobDuration = Constraint(model.sJobs, rule=fc05_JobDuration)
+    #print("Generating c05_JobDuration constraint - Eq. cJobDuration")
+    #model.c05_JobDuration = Constraint(model.sJobs, rule=fc05_JobDuration)
 
     print("Generating c06_GlobalStartConstraint constraint - Eq. startGlobalLowerBoundNoCommas")
     model.c06_GlobalStartConstraint = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc06_GlobalStartConstraint)
 
     print("Generating c07_GlobalFinishConstraint constraint - Eq. finishGlobalUpperBoundNoCommas")
     model.c07_GlobalFinishConstraint = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc07_GlobalFinishConstraint)
-    
+
     print("Generating c08_StartFinishRelation constraint - Eq. noNegativeDurationNoCommas")
     model.c08_StartFinishRelation = Constraint(model.sJobs, rule=fc08_StartFinishRelation)
 
     print("Generating c09_SlotStartTime constraint - Eq. slotStartTimeFromJobs")
-    model.c09_SlotStartTime = Constraint(model.sSlots, model.sPositions, rule=fc09_SlotStartTime)
+    model.c09_SlotStartTime = Constraint(model.sSlots, model.sPositions, rule=fc11_SlotStartTime)
 
     print("Generating c10_SlotFinishTime constraint - Eq. slotFinishTimeFromJobs")
-    model.c10_SlotFinishTime = Constraint(model.sSlots, model.sPositions, rule=fc10_SlotFinishTime)
+    model.c10_SlotFinishTime = Constraint(model.sSlots, model.sPositions, rule=fc12_SlotFinishTime)
 
     print("Generating c11_SlotSequence constraint - Eq. SlotSequence")
-    model.c11_SlotSequence = Constraint(model.sSlotsSequence, rule=fc11_SlotSequence)
+    model.c11_SlotSequence = Constraint(model.sSlotsSequence, rule=fc13_SlotSequence)
 
     print("Generating c12_JobSequence constraint - Eq. jobPrecedence")
-    model.c12_JobSequence = Constraint(model.sJobSequence, rule=fc12_JobSequence)
+    model.c12_JobSequence = Constraint(model.sJobSequence, rule=fc14_JobSequence)
 
     print("Generating c13_ConsecutiveSlots constraint - Eq. noEmptySlots")
-    model.c13_ConsecutiveSlots = Constraint(model.sSlots, model.sPositions, rule=fc13_ConsecutiveSlots)
+    model.c13_ConsecutiveSlots = Constraint(model.sSlots, model.sPositions, rule=fc15_ConsecutiveSlots)
 
     print("Generating c14_SingleSlotPerJob constraint - Eq. 14")
-    model.c14_SingleSlotPerJob = Constraint(model.sJobs, rule=fc14_SingleSlotPerJob)
+    model.c14_SingleSlotPerJob = Constraint(model.sJobs, rule=fc16_SingleSlotPerJob)
 
     print("Generating c15_DurationIfNotAssigned constraint - Eq. 15")   
-    model.c15_DurationIfNotAssigned = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc15_DurationIfNotAssigned)
-    
-    print("Generating c16_PlaneSlotAssignment constraint - Eq. cPlaneSlotAssignment")
-    model.c16_PlaneSlotAssignment = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc16_PlaneSlotAssignment)
+    model.c15_DurationIfNotAssigned = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc17_DurationIfNotAssigned)
 
-    print("Generating c17_PlaneInPosition constraint")
-    model.c17_PlaneInPosition = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc17_PlaneInPosition)
+    print("Generating c16_SlotDuration constraint")
+    model.c16_SlotDuration = Constraint(model.sSlots, model.sPositions, rule=fc18_SlotDuration)
 
-    print("Generating c18_SlotDuration constraint")
-    model.c18_SlotDuration = Constraint(model.sSlots, model.sPositions, rule=fc18_SlotDuration)
+    print("Generating c17_PlaneSlotAssignment constraint - Eq. cPlaneSlotAssignment")
+    model.c17_PlaneSlotAssignment = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc19_PlaneSlotAssignment)
+
+    print("Generating c18_PlaneInPosition constraint")
+    model.c18_PlaneInPosition = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc20_PlaneInPosition)
 
     print("Generating c19_BetaDefinition1 constraint - Eq. fcBetaDefinion1")
     model.c19_BetaDefinition1 = Constraint(model.sPosPosSlotSlot, rule=fc19_BetaDefinition1)
@@ -246,7 +269,7 @@ def ap_pyomo_model():
 
     print("Generating c22_SwitchingPlanes constraint - Eq. PlaneSwitchInPOsition")
     model.c22_SwitchingPlanes = Constraint(model.sSwitchPlanes, rule=fc22_SwitchingPlanes)
-    
+
     # Objective function
     print("Generating objective function")
     model.ObjFunction = Objective(rule=fc23_NoMovements, sense=minimize)
@@ -350,7 +373,7 @@ def get_solution_data(model):
     start_slot = {(s, p): model.vStartSlot[s, p].value for s in model.sSlots for p in model.sPositions}
 
     finish_slot = {(s, p): model.vFinishSlot[s, p].value for s in model.sSlots for p in model.sPositions}
-    
+
     # Add global job start and finish times
     start_job = {j: model.vStartJob[j].value for j in model.sJobs}
     finish_job = {j: model.vFinishJob[j].value for j in model.sJobs}
@@ -399,11 +422,11 @@ def print_chart(solution):
 def check_solution(data, solution):
     """
     Verifica que la solución cumpla con todos los requisitos del modelo de posicionamiento de aeronaves.
-    
+
     Args:
         data: Diccionario con los datos de entrada
         solution: Diccionario con los resultados de la solución
-        
+
     Returns:
         dict: Diccionario con los resultados de las verificaciones, con una entrada por cada restricción
              verificada. Cada entrada contiene un booleano que indica si se cumple la restricción y un 
@@ -432,7 +455,7 @@ def check_solution(data, solution):
 
     # Inicializar diccionario de resultados
     verification_results = {}
-    
+
     # 1. Verificar que cada trabajo esté asignado exactamente una vez
     verification_results['all_jobs_assigned'] = {'passed': True, 'errors': []}
     assigned_jobs = [j for _, j in slot_assignment.items()]
@@ -440,7 +463,7 @@ def check_solution(data, solution):
         if j not in assigned_jobs:
             verification_results['all_jobs_assigned']['passed'] = False
             verification_results['all_jobs_assigned']['errors'].append(f"Job {j} no está asignado a ninguna ranura")
-    
+
     # 2. Verificar que cada ranura tenga a lo sumo un trabajo asignado
     verification_results['single_job_per_slot'] = {'passed': True, 'errors': []}
     for p in sPositions:
@@ -450,7 +473,7 @@ def check_solution(data, solution):
                 verification_results['single_job_per_slot']['passed'] = False
                 verification_results['single_job_per_slot']['errors'].append(
                     f"La ranura {s} en la posición {p} tiene múltiples trabajos asignados: {jobs_in_slot}")
-    
+
     # 3. Verificar que la duración total de cada trabajo sea correcta
     verification_results['job_duration_correct'] = {'passed': True, 'errors': []}
     for j in sJobs:
@@ -460,7 +483,7 @@ def check_solution(data, solution):
                 verification_results['job_duration_correct']['passed'] = False
                 verification_results['job_duration_correct']['errors'].append(
                     f"El trabajo {j} debería tener duración {pJobDuration[j]}, pero tiene {total_duration}")
-    
+
     # 4. Verificar que la duración de las ranuras sea consistente con los trabajos asignados
     verification_results['slot_duration_consistent'] = {'passed': True, 'errors': []}
     for (s, p), dur in duration_slot.items():
@@ -469,7 +492,7 @@ def check_solution(data, solution):
             verification_results['slot_duration_consistent']['passed'] = False
             verification_results['slot_duration_consistent']['errors'].append(
                 f"La ranura {s} en posición {p} tiene duración {dur}, pero la suma de duraciones de trabajos es {job_duration_sum}")
-    
+
     # 5. Verificar que los tiempos de inicio y fin de las ranuras son consistentes
     verification_results['slot_times_consistent'] = {'passed': True, 'errors': []}
     for s in sSlots:
@@ -480,7 +503,7 @@ def check_solution(data, solution):
                     verification_results['slot_times_consistent']['errors'].append(
                         f"La ranura {s} en posición {p} tiene inconsistencia en tiempos: inicio={start_slot[(s, p)]}, "
                         f"fin={finish_slot[(s, p)]}, duración={duration_slot.get((s, p), 0)}")
-    
+
     # 6. Verificar que no hay solapamiento entre ranuras consecutivas en la misma posición
     verification_results['no_overlap_same_position'] = {'passed': True, 'errors': []}
     for p in sPositions:
@@ -490,13 +513,13 @@ def check_solution(data, solution):
             current_slot, current_start = slots_in_pos[i]
             next_slot, next_start = slots_in_pos[i + 1]
             current_end = finish_slot.get((current_slot, p), 0)
-            
+
             if current_end > next_start + 1e-6:  # Pequeña tolerancia
                 verification_results['no_overlap_same_position']['passed'] = False
                 verification_results['no_overlap_same_position']['errors'].append(
                     f"Solapamiento en posición {p}: Ranura {current_slot} termina en {current_end}, "
                     f"pero ranura {next_slot} comienza en {next_start}")
-    
+
     # 7. Verificar la secuencia de trabajos para el mismo avión
     verification_results['job_sequence_correct'] = {'passed': True, 'errors': []}
     for plane in sPlanes:
@@ -504,12 +527,12 @@ def check_solution(data, solution):
         plane_jobs = [(j, pTaskOfJob[j]) for j in sJobs if pPlaneOfJob[j] == plane]
         # Ordenar por número de tarea
         plane_jobs.sort(key=lambda x: x[1])
-        
+
         # Verificar que los trabajos se realizan en secuencia
         for i in range(len(plane_jobs) - 1):
             current_job, current_task = plane_jobs[i]
             next_job, next_task = plane_jobs[i + 1]
-            
+
             # Calcular tiempos de finalización y comienzo
             current_finish_times = [finish_slot_job.get((s, p, current_job), 0) 
                                    for s in sSlots for p in sPositions 
@@ -517,17 +540,17 @@ def check_solution(data, solution):
             next_start_times = [start_slot_job.get((s, p, next_job), 0) 
                                for s in sSlots for p in sPositions 
                                if (s, p, next_job) in start_slot_job]
-            
+
             if current_finish_times and next_start_times:
                 current_finish = max(current_finish_times)
                 next_start = min(next_start_times)
-                
+
                 if current_finish > next_start + 1e-6:
                     verification_results['job_sequence_correct']['passed'] = False
                     verification_results['job_sequence_correct']['errors'].append(
                         f"Secuencia incorrecta para avión {plane}: Trabajo {current_job} (tarea {current_task}) "
                         f"termina en {current_finish}, pero trabajo {next_job} (tarea {next_task}) comienza en {next_start}")
-    
+
     # 8. Verificar que no hay interferencia entre posiciones que no deben solaparse
     verification_results['no_position_interference'] = {'passed': True, 'errors': []}
     for p1, p2 in sPositionsInterfere:
@@ -536,7 +559,7 @@ def check_solution(data, solution):
                     for s in sSlots if (s, p1) in start_slot and (s, p1) in finish_slot]
         slots_p2 = [(s, start_slot.get((s, p2), 0), finish_slot.get((s, p2), 0)) 
                     for s in sSlots if (s, p2) in start_slot and (s, p2) in finish_slot]
-        
+
         # Verificar solapamientos
         for s1, start1, end1 in slots_p1:
             for s2, start2, end2 in slots_p2:
@@ -548,13 +571,13 @@ def check_solution(data, solution):
                             (s == s2 and s_2 == s1 and pos == p2 and pos_2 == p1)):
                             found_in_interference = True
                             break
-                    
+
                     if not found_in_interference:
                         verification_results['no_position_interference']['passed'] = False
                         verification_results['no_position_interference']['errors'].append(
                             f"Interferencia no registrada entre posiciones {p1} y {p2}: "
                             f"Ranura {s1} ({start1}-{end1}) y ranura {s2} ({start2}-{end2})")
-    
+
     # 9. Verificar que todos los trabajos se completan dentro del horizonte
     verification_results['within_horizon'] = {'passed': True, 'errors': []}
     for (s, p), end_time in finish_slot.items():
@@ -562,7 +585,7 @@ def check_solution(data, solution):
             verification_results['within_horizon']['passed'] = False
             verification_results['within_horizon']['errors'].append(
                 f"La ranura {s} en posición {p} termina en {end_time}, que excede el horizonte {pHorizon}")
-    
+
     # 10. Verificar que los aviones no están en diferentes posiciones al mismo tiempo
     verification_results['plane_single_position'] = {'passed': True, 'errors': []}
     for plane in sPlanes:
@@ -571,7 +594,7 @@ def check_solution(data, solution):
         for (s, p), j in slot_assignment.items():
             if pPlaneOfJob[j] == plane:
                 plane_slots.append((s, p, start_slot.get((s, p), 0), finish_slot.get((s, p), 0)))
-        
+
         # Verificar solapamientos entre posiciones diferentes
         for i in range(len(plane_slots)):
             s1, p1, start1, end1 = plane_slots[i]
@@ -584,34 +607,34 @@ def check_solution(data, solution):
                         verification_results['plane_single_position']['errors'].append(
                             f"Avión {plane} está en múltiples posiciones al mismo tiempo: "
                             f"Posición {p1} ({start1}-{end1}) y posición {p2} ({start2}-{end2})")
-    
+
     # 11. Verificar que no se utilice un slot a menos que se hayan utilizado todos los anteriores
     verification_results['consecutive_slots'] = {'passed': True, 'errors': []}
-    
+
     # Ordenar slots por número
     sorted_slots = sorted(sSlots, key=lambda x: int(x.replace('slot', '')))
-    
+
     for p in sPositions:
         for i in range(1, len(sorted_slots)):
             current_slot = sorted_slots[i]
             prev_slot = sorted_slots[i-1]
-            
+
             # Contar trabajos asignados a cada slot
             jobs_in_current = sum(1 for (s, pos), _ in slot_assignment.items() if s == current_slot and pos == p)
             jobs_in_prev = sum(1 for (s, pos), _ in slot_assignment.items() if s == prev_slot and pos == p)
-            
+
             if jobs_in_current > 0 and jobs_in_prev == 0:
                 verification_results['consecutive_slots']['passed'] = False
                 verification_results['consecutive_slots']['errors'].append(
                     f"Posición {p}: Se utiliza el slot {current_slot} pero no se utiliza el slot anterior {prev_slot}")
-    
+
     # Resumen final
     all_passed = all(result['passed'] for result in verification_results.values())
     summary = {
         'all_constraints_satisfied': all_passed,
         'constraints_verification': verification_results
     }
-    
+
     return summary
 
 
@@ -667,7 +690,7 @@ if __name__ == "__main__":
     if results.solver.status.value == "ok":
         print("Solución encontrada. Verificando restricciones...")
         verification = check_solution(data, solution)
-        
+
         if verification['all_constraints_satisfied']:
             print("✅ Todas las restricciones se cumplen correctamente.")
         else:
@@ -677,16 +700,16 @@ if __name__ == "__main__":
                     print(f"  - Restricción '{constraint}' fallida:")
                     for error in result['errors']:
                         print(f"    * {error}")
-        
+
         # Añadir informe detallado sobre la terminación del solucionador
         print("\n" + "="*80)
         print("INFORME DE TERMINACIÓN DEL SOLUCIONADOR")
         print("="*80)
-        
+
         # Verificar razón de terminación
         termination_condition = results.solver.termination_condition
         print(f"Condición de terminación: {termination_condition}")
-        
+
         if termination_condition == TerminationCondition.optimal:
             print("✅ Se encontró la solución óptima")
         elif termination_condition == TerminationCondition.maxTimeLimit:
@@ -697,13 +720,13 @@ if __name__ == "__main__":
             print("🎯 Se alcanzó el gap relativo objetivo")
         else:
             print(f"Otra condición: {termination_condition}")
-        
+
         # Obtener estadísticas adicionales si están disponibles
         try:
             if hasattr(results.problem, 'lower_bound') and hasattr(results.problem, 'upper_bound'):
                 lower_bound = results.problem.lower_bound
                 upper_bound = results.problem.upper_bound
-                
+
                 if upper_bound and lower_bound:
                     gap = abs(upper_bound - lower_bound) / max(abs(upper_bound), 1e-10) * 100
                     print(f"\nGap final: {gap:.4f}%")
@@ -711,7 +734,7 @@ if __name__ == "__main__":
                     print(f"Cota superior: {upper_bound:.6f}")
         except:
             print("\nNo se pudieron obtener estadísticas de cotas")
-            
+
         # Estadísticas adicionales
         try:
             if hasattr(results.solver, 'statistics'):
@@ -725,7 +748,7 @@ if __name__ == "__main__":
                     print(f"Tiempo de ejecución: {stats.wall_time:.2f} segundos")
         except:
             print("\nNo se pudieron obtener estadísticas adicionales")
-            
+
         # Información de Gurobi (específica)
         try:
             gurobi_info = {}
@@ -733,7 +756,7 @@ if __name__ == "__main__":
                 if key.startswith('gurobi_'):
                     param = key[7:]  # Eliminar 'gurobi_'
                     gurobi_info[param] = results.solver.user_params[key]
-                    
+
             if gurobi_info:
                 print("\nEstadísticas de Gurobi:")
                 if 'itercount' in gurobi_info:
@@ -746,9 +769,9 @@ if __name__ == "__main__":
                     print(f"Tiempo de ejecución: {gurobi_info['runtime']:.2f} segundos")
         except:
             print("\nNo se pudieron obtener estadísticas específicas de Gurobi")
-        
+
         print("="*80)
-        
+
         print("\nGenerando gráfico de la solución...")
         print_chart(solution)
     else:
@@ -756,5 +779,3 @@ if __name__ == "__main__":
         print(f"Condición de terminación: {results.solver.termination_condition}")
 
     print("done")
-
-
