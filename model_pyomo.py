@@ -1,4 +1,6 @@
 from pyomo.environ import *
+from pyomo.gdp import Disjunct
+from pyomo.core.base.block import Block
 import pandas as pd
 import plotly.express as px
 import datetime
@@ -32,6 +34,7 @@ def ap_pyomo_model():
     model.pAirplaneOfClient = Param(model.sClients, model.sPlanes)
     model.pLastJobOfPlane = Param(model.sJobs, model.sPlanes, mutable=True)
     model.pLateFinishOfPlane = Param(model.sPlanes, mutable=True)
+    model.pTaskOfJob = Param(model.sJobs, within=PositiveIntegers)
 
     # Variables
     model.v01JobInSlot = Var(model.sSlots, model.sPositions, model.sJobs, domain=Binary)
@@ -77,41 +80,59 @@ def ap_pyomo_model():
     #     return sum(model.vDurationSlotForJob[s, p, j] for s in model.sSlots for p in model.sPositions) == \
     #            model.pJobDuration[j]
 
-    # Rule: Ec. startGlobalLowerBoundNoCommas - Global job start time constraint
-    def fc06_GlobalStartConstraint(model, s, p, j):
-        if model.v01JobInSlot[s, p, j].fixed and model.v01JobInSlot[s, p, j].value == 0:
-            return Constraint.Skip
+# # Constraints 6 and 7 having s, p, j as arguments
+#     # Rule: Ec. startGlobalLowerBoundNoCommas - Global job start time constraint
+#     def fc06_GlobalStartConstraint(model, s, p, j):
+#         if model.v01JobInSlot[s, p, j].fixed and model.v01JobInSlot[s, p, j].value == 0:
+#             return Constraint.Skip
+#
+#         # s_j = ∑_p∑_s (s^j_spj)
+#         return model.vStartJob[j] == sum(model.vStartSlotForJob[s, p, j] for p in model.sPositions for s in model.sSlots)
+#
+#     # Rule: Ec. finishGlobalUpperBoundNoCommas - Global job finish time constraint
+#     def fc07_GlobalFinishConstraint(model, s, p, j):
+#         if model.v01JobInSlot[s, p, j].fixed and model.v01JobInSlot[s, p, j].value == 0:
+#             return Constraint.Skip
+#
+#         # f_j = ∑_p∑_s (f^j_spj)
+#         return model.vFinishJob[j] == sum(model.vFinishSlotForJob[s, p, j] for p in model.sPositions for s in model.sSlots)
+#Constraints 6 and 7 just having only jobs as arguments as stated in constraint 16 every job must be assigned
+    def fc06_GlobalStartConstraint(model, j):
+        return model.vStartJob[j] == sum(
+            model.vStartSlotForJob[s, p, j]
+            for s in model.sSlots
+            for p in model.sPositions
+        )
 
-        # s_j = ∑_p∑_s (s^j_spj) 
-        return model.vStartJob[j] == sum(model.vStartSlotForJob[s, p, j] for p in model.sPositions for s in model.sSlots)
-
-    # Rule: Ec. finishGlobalUpperBoundNoCommas - Global job finish time constraint
-    def fc07_GlobalFinishConstraint(model, s, p, j):
-        if model.v01JobInSlot[s, p, j].fixed and model.v01JobInSlot[s, p, j].value == 0:
-            return Constraint.Skip
-
-        # f_j = ∑_p∑_s (f^j_spj) 
-        return model.vFinishJob[j] == sum(model.vFinishSlotForJob[s, p, j] for p in model.sPositions for s in model.sSlots)
+    def fc07_GlobalFinishConstraint(model, j):
+        return model.vFinishJob[j] == sum(
+            model.vFinishSlotForJob[s, p, j]
+            for s in model.sSlots
+            for p in model.sPositions
+        )
 
     # Rule: Ec. noNegativeDurationNoCommas - Start time of job must be <= finish time of job
     def fc08_StartFinishRelation(model, j):
         # s_j ≤ f_j
         return model.vStartJob[j] <= model.vFinishJob[j]
+
     # Rule: Ec. calculating delays of planes
-    def plane_delay_rule(model, r):
-        # para cada (j,r) con L[j,r]=1, impongo γ_r ≥ f[j] - T[r]
+    def fc09_Plane_delay(model,r):
+        # para cada (j,r) con L[j,r]=1, impongo H*γ_r ≥ f[j] - T[r]
         return model.vPlaneDelay[r] >= sum(
             (model.vFinishJob[j] - model.pLateFinishOfPlane[r]) * model.pLastJobOfPlane[j, r]
-            for j in model.sJobs
+            for j in model.sJobs if (j, r) in model.pLastJobOfPlane
         )
-    model.PlaneDelayConstr = Constraint(model.sPlanes, rule=plane_delay_rule)
 
     # Rule: Ec. calculating delays of clients
-   def client_delay_rule(model, c):
-       return model.vClientDelay[c] == sum(
-           model.vPlaneDelay[r]*model.pAirplaneOfClient[c,r] for r in model.sPlanes
-       )
-       model.ClientDelayConstr = Constraint(model.sClients, rule=client_delay_rule)
+    def fc10_Client_delay(model, c):
+#         return m.vClientDelay[c] >= m.vPlaneDelay[r]
+
+        return model.vClientDelay[c] == sum(
+            model.vPlaneDelay[r]*model.pAirplaneOfClient[c,r]
+            for r in model.sPlanes if (c, r) in model.pAirplaneOfClient
+        )
+
     # Rule: Ec. slotStartTimeFromJobs - The starting time of a slot
     def fc11_SlotStartTime(model, s, p):
         return model.vStartSlot[s, p] == sum(model.vStartSlotForJob[s, p, j] for j in model.sJobs)
@@ -137,7 +158,7 @@ def ap_pyomo_model():
         # Get the previous slot
         prev_s = list(model.sSlots)[model.sSlots.ord(s) - 2]  # -1 for 0-based indexing, -1 for previous
 
-        # Sum of job assignments in current slot must be equal to sum in previous slot
+        # Sum of job assignments in the current slot must be equal to sum in previous slot
         return sum(model.v01JobInSlot[s, p, j] for j in model.sJobs) == sum(model.v01JobInSlot[prev_s, p, j] for j in model.sJobs)
 
     # Rule: Ec. - A job can be assigned to a single slot of a position
@@ -164,26 +185,28 @@ def ap_pyomo_model():
     def fc20_PlaneInPosition(model, s, p, r):
         return model.v01PlaneInPosition[r, p] >= model.v01PlaneInSlot[s, p, r]# Rule: Ec. cPlaneSlotAssignment - Airplane-job consistency assignment
 
-#reglas 20 y 21 añadir
+    # Rule: Client c with some airpline in position p:
+    def fc21_ClientInPosition(model, c, p):
+        return model.vClientPosition[c, p] >= model.v01PlaneInPosition[model.pPlaneOfClient[c], p]
 
     # Rule: Ec. fcBetaDefinion1 - Computing if starting time of slot s in position p is earlier than starting time of slot s' in position p'
-    def fc19_BetaDefinition1(model, s, s2, p, p2):
+    def fc22_BetaDefinition1(model, s, s2, p, p2):
         return model.pHorizon * model.v01BetaS[s, s2, p, p2] + model.vStartSlot[s, p] >= model.vStartSlot[s2, p2]
 
     # Rule: Ec. fcBetaDefinion2 - Computing if finishing time of slot s in position p is later than starting time of slot s' in position p'
-    def fc20_BetaDefinition2(model, s, s2, p, p2):
+    def fc23_BetaDefinition2(model, s, s2, p, p2):
         return model.pHorizon * model.v01BetaF[s, s2, p, p2] + model.vStartSlot[s2, p2] >= model.vFinishSlot[s, p]
 
     # Rule: Interference between slots
-    def fc21_InterferenceExists(model, s, s2, p, p2):
+    def fc24_InterferenceExists(model, s, s2, p, p2):
         return 1 + model.v01Alpha[s, s2, p, p2] >= model.v01BetaS[s, s2, p, p2] + model.v01BetaF[s, s2, p, p2]
 
     # Rule: Ec. PlaneSwitchInPosition - Switching planes between consecutive slots
-    def fc22_SwitchingPlanes(model, p, s, s2, r, r2):
+    def fc25_SwitchingPlanes(model, p, s, s2, r, r2):
         return 1 + model.v01SwitchPlanes[s, p] >= model.v01PlaneInSlot[s, p, r] + model.v01PlaneInSlot[s2, p, r2]
 
     # Rule: If a job is split among different slots, these cannot overlap
-    def fc21_NoOverlapSlots(model, s, s2, p, p2, j):
+    def fc26_NoOverlapSlots(model, s, s2, p, p2, j):
         # Skip if it's the same slot and position
         if s == s2 or p == p2:
             return Constraint.Skip
@@ -196,7 +219,7 @@ def ap_pyomo_model():
 
 
     # Rule: función objetivo
-    def fc23_NoMovements(model):
+    def fc27_NoMovements(model):
         return sum(model.v01JobInSlot[s, p, j] for s in model.sSlots for p in model.sPositions for j in model.sJobs) \
                 + sum(model.v01Alpha[i] for i in model.sPosPosSlotSlot) \
                 + sum(model.v01SwitchPlanes[s, p] for p in model.sPositions for s in model.sSlots) \
@@ -216,63 +239,82 @@ def ap_pyomo_model():
     print("Generating c04_NullFinishTimeIfNotInSlot constraint - Eq. nullFinishIfNotAssigned")
     model.c04_NullFinishTimeIfNotInSlot = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc04_NullFinishTimeIfNotInSlot)
 
-    #print("Generating c05_JobDuration constraint - Eq. cJobDuration")
-    #model.c05_JobDuration = Constraint(model.sJobs, rule=fc05_JobDuration)
+    # #print("Generating c05_JobDuration constraint - Eq. cJobDuration")
+    # #model.c05_JobDuration = Constraint(model.sJobs, rule=fc05_JobDuration)
+
+    # #Restrictions 6 and 7 having as arguments s, p and j.
+    # print("Generating c06_GlobalStartConstraint constraint - Eq. startGlobalLowerBoundNoCommas")
+    # model.c06_GlobalStartConstraint = Constraint( model.sSlots, model.sPositions, model.sJobs, rule=fc06_GlobalStartConstraint)
+    #
+    # print("Generating c07_GlobalFinishConstraint constraint - Eq. finishGlobalUpperBoundNoCommas")
+    # model.c07_GlobalFinishConstraint = Constraint( model.sSlots, model.sPositions, model.sJobs, rule=fc07_GlobalFinishConstraint)
 
     print("Generating c06_GlobalStartConstraint constraint - Eq. startGlobalLowerBoundNoCommas")
-    model.c06_GlobalStartConstraint = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc06_GlobalStartConstraint)
+    model.c06_GlobalStartConstraint = Constraint( model.sJobs, rule=fc06_GlobalStartConstraint)
 
     print("Generating c07_GlobalFinishConstraint constraint - Eq. finishGlobalUpperBoundNoCommas")
-    model.c07_GlobalFinishConstraint = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc07_GlobalFinishConstraint)
+    model.c07_GlobalFinishConstraint = Constraint( model.sJobs, rule=fc07_GlobalFinishConstraint)
 
     print("Generating c08_StartFinishRelation constraint - Eq. noNegativeDurationNoCommas")
     model.c08_StartFinishRelation = Constraint(model.sJobs, rule=fc08_StartFinishRelation)
 
-    print("Generating c09_SlotStartTime constraint - Eq. slotStartTimeFromJobs")
-    model.c09_SlotStartTime = Constraint(model.sSlots, model.sPositions, rule=fc11_SlotStartTime)
+    print("Generating c09_PlaneDelay contraint - Eq. cPlaneDelay")
+    model.c09_Plane_delay = Constraint(model.sPlanes, rule=fc09_Plane_delay)
 
-    print("Generating c10_SlotFinishTime constraint - Eq. slotFinishTimeFromJobs")
-    model.c10_SlotFinishTime = Constraint(model.sSlots, model.sPositions, rule=fc12_SlotFinishTime)
+    print("Generating c10_ClientDelay contraint - Eq. cPlaneDelay")
+    model.c10_Client_delay = Constraint(model.sClients, rule=fc10_Client_delay)
 
-    print("Generating c11_SlotSequence constraint - Eq. SlotSequence")
-    model.c11_SlotSequence = Constraint(model.sSlotsSequence, rule=fc13_SlotSequence)
+    print("Generating c11_SlotStartTime constraint - Eq. slotStartTimeFromJobs")
+    model.c11_SlotStartTime = Constraint(model.sSlots, model.sPositions, rule=fc11_SlotStartTime)
 
-    print("Generating c12_JobSequence constraint - Eq. jobPrecedence")
-    model.c12_JobSequence = Constraint(model.sJobSequence, rule=fc14_JobSequence)
+    print("Generating c12_SlotFinishTime constraint - Eq. slotFinishTimeFromJobs")
+    model.c12_SlotFinishTime = Constraint(model.sSlots, model.sPositions, rule=fc12_SlotFinishTime)
 
-    print("Generating c13_ConsecutiveSlots constraint - Eq. noEmptySlots")
-    model.c13_ConsecutiveSlots = Constraint(model.sSlots, model.sPositions, rule=fc15_ConsecutiveSlots)
+    print("Generating c13_SlotSequence constraint - Eq. SlotSequence")
+    model.c13_SlotSequence = Constraint(model.sSlotsSequence, rule=fc13_SlotSequence)
 
-    print("Generating c14_SingleSlotPerJob constraint - Eq. 14")
-    model.c14_SingleSlotPerJob = Constraint(model.sJobs, rule=fc16_SingleSlotPerJob)
+    print("Generating c14_JobSequence constraint - Eq. jobPrecedence")
+    model.c14_JobSequence = Constraint(model.sJobSequence, rule=fc14_JobSequence)
 
-    print("Generating c15_DurationIfNotAssigned constraint - Eq. 15")   
-    model.c15_DurationIfNotAssigned = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc17_DurationIfNotAssigned)
+    print("Generating c15_ConsecutiveSlots constraint - Eq. noEmptySlots")
+    model.c15_ConsecutiveSlots = Constraint(model.sSlots, model.sPositions, rule=fc15_ConsecutiveSlots)
 
-    print("Generating c16_SlotDuration constraint")
-    model.c16_SlotDuration = Constraint(model.sSlots, model.sPositions, rule=fc18_SlotDuration)
+    print("Generating c16_SingleSlotPerJob constraint - Eq. 14")
+    model.c16_SingleSlotPerJob = Constraint(model.sJobs, rule=fc16_SingleSlotPerJob)
 
-    print("Generating c17_PlaneSlotAssignment constraint - Eq. cPlaneSlotAssignment")
-    model.c17_PlaneSlotAssignment = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc19_PlaneSlotAssignment)
+    print("Generating c17_DurationIfNotAssigned constraint - Eq. 15")
+    model.c17_DurationIfNotAssigned = Constraint(model.sSlots, model.sPositions, model.sJobs, rule=fc17_DurationIfNotAssigned)
 
-    print("Generating c18_PlaneInPosition constraint")
-    model.c18_PlaneInPosition = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc20_PlaneInPosition)
+    print("Generating c18_SlotDuration constraint")
+    model.c18_SlotDuration = Constraint(model.sSlots, model.sPositions, rule=fc18_SlotDuration)
 
-    print("Generating c19_BetaDefinition1 constraint - Eq. fcBetaDefinion1")
-    model.c19_BetaDefinition1 = Constraint(model.sPosPosSlotSlot, rule=fc19_BetaDefinition1)
+    print("Generating c19_PlaneSlotAssignment constraint - Eq. cPlaneSlotAssignment")
+    model.c19_PlaneSlotAssignment = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc19_PlaneSlotAssignment)
 
-    print("Generating c20_BetaDefinition2 constraint - Eq. fcBetaDefinion2")
-    model.c20_BetaDefinition2 = Constraint(model.sPosPosSlotSlot, rule=fc20_BetaDefinition2)    
+    print("Generating c20_PlaneInPosition constraint")
+    model.c20_PlaneInPosition = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc20_PlaneInPosition)
 
-    print("Generating c21_InterferenceExists constraint")
-    model.c21_InterferenceExists = Constraint(model.sPosPosSlotSlot, rule=fc21_InterferenceExists)
+    print("Generating c21_ClientInPosition constraint")
+    model.c21_ClientInPosition = Constraint(model.sClients, model.sPositions, rule=fc21_ClientInPosition)
 
-    print("Generating c22_SwitchingPlanes constraint - Eq. PlaneSwitchInPOsition")
-    model.c22_SwitchingPlanes = Constraint(model.sSwitchPlanes, rule=fc22_SwitchingPlanes)
+    print("Generating c22_BetaDefinition1 constraint - Eq. fcBetaDefinion1")
+    model.c22_BetaDefinition1 = Constraint(model.sPosPosSlotSlot, rule=fc22_BetaDefinition1)
 
-    # Objective function
+    print("Generating c23_BetaDefinition2 constraint - Eq. fcBetaDefinion2")
+    model.c23_BetaDefinition2 = Constraint(model.sPosPosSlotSlot, rule=fc23_BetaDefinition2)
+
+    print("Generating c24_InterferenceExists constraint")
+    model.c24_InterferenceExists = Constraint(model.sPosPosSlotSlot, rule=fc24_InterferenceExists)
+
+    # print("Generating c25_SwitchingPlanes constraint - Eq. PlaneSwitchInPOsition")
+    # model.c25_SwitchingPlanes = Constraint(model.sSwitchPlanes, rule=fc25_SwitchingPlanes)
+    #
+    # print("Generating c26_NoOverlapSlots constraint")
+    # model.c26_NoOverlapSlots = Constraint(model.sSlots, model.sSlots, model.sPositions, model.sPositions, model.sJobs, rule=fc26_NoOverlapSlots)
+
+    #Objective function
     print("Generating objective function")
-    model.ObjFunction = Objective(rule=fc23_NoMovements, sense=minimize)
+    model.ObjFunction = Objective(rule=fc27_NoMovements, sense=minimize)
 
     return model
 
@@ -312,18 +354,51 @@ def create_data(data):
     sPositionsInterfere = data.get('sPositionsInterfere', None)
     sJobs = data.get('sJobs', None)
     sPlanes = data.get('sPlanes', None)
-    sSlots = data.get('sSlots', None)
+    # sSlots = data.get('sSlots', None)
     pJobDuration = data.get('pJobDuration', None)
     pDate = data.get('pDate', None)
     pHorizon = data.get('pHorizon')
     pPlaneOfJob = data.get('pPlaneOfJob')
     pTaskOfJob = data.get('pTaskOfJob')
 
+    #Alternative version for slot calculation in base of duration of jobs
+    sSlots = ['slot{}'.format(i) for i in range(10)]
+
     sSlotsSequence = [(s, s2, p) for p in sPositions for s in sSlots for s2 in sSlots
                       if sSlots.index(s) == sSlots.index(s2) + 1]
 
-    sJobSequence = [(j, j2) for j in sJobs for j2 in sJobs if pPlaneOfJob[j] == pPlaneOfJob[j2]
-                    and pTaskOfJob[j] + 1 == pTaskOfJob[j2]]
+    # sJobSequence = [(j, j2) for j in sJobs for j2 in sJobs if pPlaneOfJob[j] == pPlaneOfJob[j2]
+    #                 and pTaskOfJob[j] < pTaskOfJob[j2]]
+
+    #Alternative version of sJobSequence
+    sJobSequence = []
+    for r in sPlanes:
+        # Filtrar trabajos por avión
+        jobs_r = [j for j in sJobs if pPlaneOfJob[j] == r]
+
+        # Verificar que las tareas sean números y no estén duplicadas
+        try:
+            task_list = [(j, int(pTaskOfJob[j])) for j in jobs_r]
+        except ValueError as e:
+            raise ValueError(f"Error en las tareas del avión {r}: asegúrate de que sean números enteros. {e}")
+
+        # Ordenar los trabajos por número de tarea
+        task_list.sort(key=lambda x: x[1])
+
+        # Crear pares secuenciales
+        for i in range(len(task_list) - 1):
+            j1, task1 = task_list[i]
+            j2, task2 = task_list[i + 1]
+            if task1 < task2:
+                sJobSequence.append((j1, j2))
+            else:
+                print(
+                    f"⚠️ Advertencia: Tareas fuera de orden o repetidas para avión {r}: {j1} (tarea {task1}), {j2} (tarea {task2})")
+
+    # Imprimir para verificación
+    print("Secuencias de trabajos generadas:")
+    for j1, j2 in sJobSequence:
+        print(f"{j1} → {j2}")
 
     sPosPosSlotSlot = [(s, s2, p, p2) for s in sSlots for s2 in sSlots for p in sPositions for p2 in sPositions if
                        (p, p2) in sPositionsInterfere and p!=p2]
@@ -338,7 +413,7 @@ def create_data(data):
         'sJobs': {None: sJobs},
         'sPositions': {None: sPositions},
         'sPlanes': {None: sPlanes},
-        'sPotisionsInterfere': {None: sPositionsInterfere},
+        'sPositionsInterfere': {None: sPositionsInterfere},
         'sPosPosSlotSlot': {None: sPosPosSlotSlot},
         'sSlotsSequence': {None: sSlotsSequence},
         'sJobSequence': {None: sJobSequence},
@@ -347,6 +422,7 @@ def create_data(data):
         'pHorizon': {None: pHorizon},
         'pJobDuration': pJobDuration,
         'pPlaneOfJob': pPlaneOfJob,
+        'pTaskOfJob': pTaskOfJob,
         'pDate': pDate
     }}
 
@@ -405,8 +481,14 @@ def print_chart(solution):
         start_date = (START_DATE + datetime.timedelta(days=start)).strftime("%Y-%m-%d")
         finish = round(finish_slot.get((s, p), None), 2)
         finish_date = (START_DATE + datetime.timedelta(days=finish)).strftime("%Y-%m-%d")
-        # TODO: remove this line and make it more general and dependent on input daa
-        plane = j[0]
+
+        # Handle different types of job identifiers
+        if isinstance(j, (list, tuple)) and len(j) > 0:
+            # If j is a list or tuple, use the first element as the plane
+            plane = j[0]
+        else:
+            # If j is not a list or tuple, use j as the plane identifier
+            plane = j
 
         # Append data to the list
         data.append({'s': s, 'p': p, 'j': j, 'start_slot': start_date, 'finish_slot': finish_date, 'plane': plane})
@@ -507,7 +589,7 @@ def check_solution(data, solution):
     # 6. Verificar que no hay solapamiento entre ranuras consecutivas en la misma posición
     verification_results['no_overlap_same_position'] = {'passed': True, 'errors': []}
     for p in sPositions:
-        slots_in_pos = sorted([(s, start_slot.get((s, p), 0)) for s in sSlots if (s, p) in start_slot], 
+        slots_in_pos = sorted([(s, start_slot.get((s, p), 0)) for s in sSlots if (s, p) in start_slot],
                              key=lambda x: x[1])
         for i in range(len(slots_in_pos) - 1):
             current_slot, current_start = slots_in_pos[i]
@@ -534,11 +616,11 @@ def check_solution(data, solution):
             next_job, next_task = plane_jobs[i + 1]
 
             # Calcular tiempos de finalización y comienzo
-            current_finish_times = [finish_slot_job.get((s, p, current_job), 0) 
-                                   for s in sSlots for p in sPositions 
+            current_finish_times = [finish_slot_job.get((s, p, current_job), 0)
+                                   for s in sSlots for p in sPositions
                                    if (s, p, current_job) in finish_slot_job]
-            next_start_times = [start_slot_job.get((s, p, next_job), 0) 
-                               for s in sSlots for p in sPositions 
+            next_start_times = [start_slot_job.get((s, p, next_job), 0)
+                               for s in sSlots for p in sPositions
                                if (s, p, next_job) in start_slot_job]
 
             if current_finish_times and next_start_times:
@@ -555,9 +637,9 @@ def check_solution(data, solution):
     verification_results['no_position_interference'] = {'passed': True, 'errors': []}
     for p1, p2 in sPositionsInterfere:
         # Obtener todas las ranuras activas en cada posición
-        slots_p1 = [(s, start_slot.get((s, p1), 0), finish_slot.get((s, p1), 0)) 
+        slots_p1 = [(s, start_slot.get((s, p1), 0), finish_slot.get((s, p1), 0))
                     for s in sSlots if (s, p1) in start_slot and (s, p1) in finish_slot]
-        slots_p2 = [(s, start_slot.get((s, p2), 0), finish_slot.get((s, p2), 0)) 
+        slots_p2 = [(s, start_slot.get((s, p2), 0), finish_slot.get((s, p2), 0))
                     for s in sSlots if (s, p2) in start_slot and (s, p2) in finish_slot]
 
         # Verificar solapamientos
@@ -567,7 +649,7 @@ def check_solution(data, solution):
                 if (start1 <= start2 < end1) or (start2 <= start1 < end2):
                     found_in_interference = False
                     for s, s_2, pos, pos_2 in interference:
-                        if ((s == s1 and s_2 == s2 and pos == p1 and pos_2 == p2) or 
+                        if ((s == s1 and s_2 == s2 and pos == p1 and pos_2 == p2) or
                             (s == s2 and s_2 == s1 and pos == p2 and pos_2 == p1)):
                             found_in_interference = True
                             break
@@ -644,11 +726,15 @@ if __name__ == "__main__":
     data = read_excel("input_data.xlsx", "case_1_plane")
     # data = read_excel("input_data.xlsx", "case_3_planes")
 
-    # Creating the Pyomo model object
-    model = ap_pyomo_model()
+    # Quick diagnose for loaded data
+    print(f"Slots cargados: {len(data['sSlots'])}, Ejemplo: {data['sSlots'][:3]}")
+    print(f"Posiciones cargadas: {len(data['sPositions'])}, Ejemplo: {data['sPositions'][:3]}")
 
     # Getting input data using the function that fills the dict out
     input_data = create_data(data)
+
+    # Creating the Pyomo model object
+    model = ap_pyomo_model()
 
     # Creating an instance of the model with input data in input_data dict.
     instance = model.create_instance(input_data)
@@ -779,3 +865,16 @@ if __name__ == "__main__":
         print(f"Condición de terminación: {results.solver.termination_condition}")
 
     print("done")
+
+print("\n🔍 Revisión rápida de asignaciones por trabajo:")
+for j in instance.sJobs:
+    assigned_slots = [(s, p) for s in instance.sSlots for p in instance.sPositions if instance.v01JobInSlot[s, p, j].value == 1]
+    if len(assigned_slots) != 1:
+        print(f"⚠️ Job {j} está asignado a {len(assigned_slots)} slots: {assigned_slots}")
+
+print("\n🔍 Verificando dominios de v01JobInSlot:")
+for s in instance.sSlots:
+    for p in instance.sPositions:
+        for j in instance.sJobs:
+            exists = (s, p, j) in instance.v01JobInSlot
+            print(f"  {'✔️' if exists else '❌'} v01JobInSlot[{s},{p},{j}]")
