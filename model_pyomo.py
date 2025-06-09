@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from pyomo.environ import *
+from math import ceil
+from datetime import date, timedelta
 
 NO_POSITIONS = 5
 POSITIONS = ['position{}'.format(i) for i in range(1, NO_POSITIONS + 1)]
@@ -50,9 +52,10 @@ def ap_pyomo_model():
     model.vDurationSlotForJob = Var(model.sSlots, model.sPositions, model.sJobs, within=NonNegativeReals)
     model.vStartSlotForJob = Var(model.sSlots, model.sPositions, model.sJobs, within=NonNegativeReals)
     model.vFinishSlotForJob = Var(model.sSlots, model.sPositions, model.sJobs, within=NonNegativeReals)
-    model.vClientPostion = Var(model.sClients, model.sPositions, domain=Binary)
+    model.vClientPosition = Var(model.sClients, model.sPositions, domain=Binary)
     model.vClientDelay = Var(model.sClients, within=NonNegativeReals)
     model.vPlaneDelay = Var(model.sPlanes, within=NonNegativeReals)
+    model.vPresence= Var(model.sSlots, model.sPositions, model.sPlanes, domain=Binary)
     # Global start and finish time of each job
     model.vStartJob = Var(model.sJobs, within=NonNegativeReals)  # s_j: global start time of job j
     model.vFinishJob = Var(model.sJobs, within=NonNegativeReals)  # f_j: global finishing time of job j
@@ -226,6 +229,18 @@ def ap_pyomo_model():
     def fc20_PlaneInPosition(model, s, p, r):
         return model.v01PlaneInPosition[r, p] >= model.v01PlaneInSlot[s, p, r]# Rule: Ec. cPlaneSlotAssignment - Airplane-job consistency assignment
 
+    def fc20b_PresentIfWork(model, s, p, r):
+        # Si r tiene un trabajo en (s,p), debe “estar” en p
+        return model.vPresence[s, p, r] >= model.v01PlaneInSlot[s, p, r]
+
+    def fc20c_PresentExactlyOne(model, s, r):
+        # Cada avión r, en cada slot s, debe estar en alguna posición
+        return sum(model.vPresence[s, p, r] for p in model.sPositions) == 1
+
+    def fc20d_SinglePlanePerPosition(model, s, p):
+        # En cada slot s y posición p, como máximo un avión puede estar presente
+        return sum(model.vPresence[s, p, r] for r in model.sPlanes) <= 1
+
     # Rule: Client c with some airpline in position p:
     def fc21_ClientInPosition(model, c, p):
         return model.vClientPosition[c, p] >= sum(
@@ -247,7 +262,7 @@ def ap_pyomo_model():
 
     # Rule: Ec. PlaneSwitchInPosition - Switching planes between consecutive slots
     def fc25_SwitchingPlanes(model, p, s, s2, r, r2):
-        return 1 + model.v01SwitchPlanes[s, p] >= model.v01PlaneInSlot[s, p, r] + model.v01PlaneInSlot[s2, p, r2]
+        return 1 + model.v01SwitchPlanes[s, p] >= model.vPresence[s, p, r] + model.vPresence[s2, p, r2]
 
     # Rule: If a job is split among different slots, these cannot overlap
     def fc26_NoOverlapSlots(model, s, s2, p, p2, j):
@@ -353,6 +368,13 @@ def ap_pyomo_model():
     print("Generating c20_PlaneInPosition constraint")
     model.c20_PlaneInPosition = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc20_PlaneInPosition)
 
+    print("Generating c20b and c20c_PlaneAlwaysPresent constraint")
+    model.cPresentIfWork = Constraint(model.sSlots, model.sPositions, model.sPlanes, rule=fc20b_PresentIfWork)
+    model.cPresentExactlyOne = Constraint(model.sSlots, model.sPlanes, rule=fc20c_PresentExactlyOne)
+
+    print("Generating c20d_SinglePlanePerPosition constraint")
+    model.c20d_SinglePlanePerPosition = Constraint(model.sSlots, model.sPositions, rule=fc20d_SinglePlanePerPosition)
+
     print("Generating c21_ClientInPosition constraint")
     model.c21_ClientInPosition = Constraint(model.sClients, model.sPositions, rule=fc21_ClientInPosition)
 
@@ -381,13 +403,14 @@ def ap_pyomo_model():
 def read_excel(file_name, sheet_name):
     df = pd.read_excel(file_name, sheet_name=sheet_name)
 
+
     sJobs         = df['job'].to_list()
     sPlanes       = df['plane'].unique().tolist()
     pJobDuration  = df.set_index('job')['duration'].to_dict()
     pDate         = df.set_index('job')['date'].to_dict()
     pPlaneOfJob   = df.set_index('job')['plane'].to_dict()
     pTaskOfJob    = df.set_index('job')['task'].to_dict()
-
+    df['predicted_finish'] = df['date'] + df['duration']
     # 2) Clientes: si existe la columna "client", la uso; si no existe, considero que cada avión es cliente propio.
     if 'client' in df.columns:
         sClients = df['client'].unique().tolist()
@@ -408,7 +431,7 @@ def read_excel(file_name, sheet_name):
                 dic_pAirplaneOfClient[(r, r2)] = 1 if (r2 == r) else 0
 
 
-    max_date_by_plane = df.groupby('plane')['date'].max().to_dict()
+    max_finish_by_plane = df.groupby('plane')['predicted_finish'].max().to_dict()
 
     dic_pLastJobOfPlane = {}
     for r in sPlanes:
@@ -444,7 +467,7 @@ def read_excel(file_name, sheet_name):
         'pTaskOfJob': pTaskOfJob,
         'pDate': pDate,
         'pHorizon': pHorizon,
-        'pLateFinishOfPlane': max_date_by_plane,
+        'pLateFinishOfPlane': max_finish_by_plane,
         'pAirplaneOfClient': dic_pAirplaneOfClient,
         'pLastJobOfPlane': dic_pLastJobOfPlane,
     }
@@ -457,13 +480,16 @@ def create_data(data):
     sPositionsInterfere = data.get('sPositionsInterfere', None)
     sJobs = data.get('sJobs', None)
     sPlanes = data.get('sPlanes', None)
+    sClients = data.get('sClients', None)
     sSlots = data.get('sSlots', None)
     pJobDuration = data.get('pJobDuration', None)
     pDate = data.get('pDate', None)
     pHorizon = data.get('pHorizon')
     pPlaneOfJob = data.get('pPlaneOfJob')
     pTaskOfJob = data.get('pTaskOfJob')
-
+    pAirplaneOfClient = data.get('pAirplaneOfClient', None)
+    pLastJobOfPlane = data.get('pLastJobOfPlane', None)
+    pLateFinishOfPlane = data.get('pLateFinishOfPlane', None)
     # #Alternative version for slot calculation in base of duration of jobs
     # sSlots = ['slot{}'.format(i) for i in range(10)]
 
@@ -516,6 +542,7 @@ def create_data(data):
         'sJobs': {None: sJobs},
         'sPositions': {None: sPositions},
         'sPlanes': {None: sPlanes},
+        'sClients': {None: sClients},
         'sPositionsInterfere': {None: sPositionsInterfere},
         'sPosPosSlotSlot': {None: sPosPosSlotSlot},
         'sSlotsSequence': {None: sSlotsSequence},
@@ -526,8 +553,12 @@ def create_data(data):
         'pJobDuration': pJobDuration,
         'pPlaneOfJob': pPlaneOfJob,
         'pTaskOfJob': pTaskOfJob,
-        'pDate': pDate
-    }}
+        'pDate': pDate,
+        'pAirplaneOfClient': pAirplaneOfClient,
+        'pLastJobOfPlane': pLastJobOfPlane,
+        'pLateFinishOfPlane': pLateFinishOfPlane,
+    }
+    }
 
     return input_data
 
@@ -616,175 +647,260 @@ def print_chart(solution, html_path="gantt_basico.html"):
         - plane: identificador del avión (la parte antes del guión, e.g. "1", "2", …)
         - p: posición (e.g. "position3", "position4", …)
         - start_slot, finish_slot: fechas (en datetime)
-    Luego genera un Gantt sencillo y lo exporta a html_path.
     Devuelve el DataFrame resultante con columna 'job'.
     """
-
-    slot_assignment = solution['slot_assignment']   # {(s, p): job}
-    start_slot_job   = solution['start_slot_job']   # {(s, p, job): float_días}
-    finish_slot_job  = solution['finish_slot_job']  # {(s, p, job): float_días}
-
-    # Defino fecha base (START_DATE) para convertir días → datetime
     from datetime import timedelta
-    START_DATE = pd.to_datetime("today").normalize()
+    import pandas as pd
 
+    # Reconstrucción del DataFrame de trabajos
     datos = []
-    for (s, p), job in slot_assignment.items():
-        t0 = start_slot_job.get((s, p, job), 0.0)
-        t1 = finish_slot_job.get((s, p, job), 0.0)
+    START_DATE = pd.to_datetime("today").normalize()
+    for (s, p), job in solution['slot_assignment'].items():
+        t0 = solution['start_slot'][(s, p)]
+        t1 = solution['finish_slot'][(s, p)]
         fecha0 = START_DATE + timedelta(days=float(t0))
         fecha1 = START_DATE + timedelta(days=float(t1))
-
-        # Extraigo el avión de "job" (cadena antes del guión '-')
         avion = str(job).split("-")[0]
-
         datos.append({
-            "job": job,              # en lugar de "j"
+            "job": job,
             "plane": avion,
             "p": p,
             "start_slot": fecha0,
             "finish_slot": fecha1
         })
-
     df = pd.DataFrame(datos)
 
-    # ——————————————————————————————————————————————————————————————————————
-    # (A) Diagrama de Gantt sencillo
-    # ——————————————————————————————————————————————————————————————————————
-    fig = px.timeline(
-        df,
-        x_start="start_slot",
-        x_end="finish_slot",
-        y="p",
-        color="plane",
-        hover_data=["job"],  # ahora sí existe la columna 'job'
-        title="Diagrama de Gantt Básico"
-    )
-    fig.update_yaxes(title="Posición")
-    fig.update_xaxes(title="Fecha")
-
-    # Ajustamos altura automáticamente
-    fig.update_layout(height=300 + 30 * df["p"].nunique())
-
-    fig.write_html(html_path)
-    print(f"→ Gantt básico guardado en: {html_path}")
+    # Configuro y guardo (si procede)
+    if html_path:
+        import plotly.express as px
+        fig = px.timeline(
+            df,
+            x_start="start_slot", x_end="finish_slot",
+            y="p", color="plane",
+            hover_data=["job"],
+            title="Diagrama de Gantt Básico"
+        )
+        fig.update_yaxes(title="Posición")
+        fig.update_xaxes(title="Fecha")
+        fig.update_layout(height=300 + 30 * df["p"].nunique())
+        fig.write_html(html_path)
+        print(f"→ Gantt básico guardado en: {html_path}")
 
     return df
 
 
+def generate_report(df_planes, model_instance, movimientos):
+    global data  # para recuperar data['pDate']
 
-def plot_enhanced_solution(
-    df,
-    gantt_html="gantt_enriquecido.html",
-    bar_html="movimientos_por_avion.html"
-):
+    # 1) Asegurar columnas start_slot / finish_slot
+    df = df_planes.copy()
+    if 'start' in df.columns and 'finish' in df.columns:
+        df = df.rename(columns={'start': 'start_slot', 'finish': 'finish_slot'})
+
+    # 2) Convertir a datetime
+    df['start_slot'] = pd.to_datetime(df['start_slot'])
+    df['finish_slot'] = pd.to_datetime(df['finish_slot'])
+
+    # 3) Parámetros auxiliares
+    pDate_map = data.get('pDate', {})
+    # Extraemos pJobDuration con value() a ints puros
+    pJobDur = {j: int(value(model_instance.pJobDuration[j])) for j in model_instance.sJobs}
+
+    # 4) Conteo de movimientos
+    mov_count = {}
+    for plane, _, _, _ in movimientos:
+        mov_count[plane] = mov_count.get(plane, 0) + 1
+
+    # 5) Resumen por avión
+    p2c = {r: c for (c, r), val in model_instance.pAirplaneOfClient.items() if val == 1}
+    resumen = []
+    for avion in sorted(df['plane'].unique()):
+        grp = df[df['plane'] == avion].sort_values('start_slot')
+        trabajos = grp[grp['type'] == 'work']['job'].tolist()
+        posiciones = grp['p'].unique().tolist()
+        inicio = grp['start_slot'].min().date()
+        fin = grp['finish_slot'].max().date()
+        cliente = p2c.get(int(avion), None)
+        resumen.append({
+            'Avión': avion,
+            'Cliente': cliente,
+            'Inicio': inicio,
+            'Fin': fin,
+            'Trabajos': ", ".join(trabajos),
+            'Posiciones': ", ".join(posiciones),
+            'Movimientos': mov_count.get(avion, 0)
+        })
+    df_res = pd.DataFrame(resumen)
+    print("\n=== RESUMEN POR AVIÓN ===")
+    print(df_res.to_string(index=False))
+
+    # 6) Detalle de trabajos (excluimos idles)
+    print("\n" + "=" * 80)
+    print("DETALLE DE TODOS LOS TRABAJOS")
+    print("=" * 80)
+    df_work = df[df['type'] == 'work'].copy()
+
+    df_det = df_work[['plane', 'job', 'p', 'start_slot', 'finish_slot']].copy()
+    df_det['Duración Estimada (días)'] = df_det['job'].map(lambda j: pJobDur[j])
+    df_det['Duración Real (días)'] = (
+                                             df_det['finish_slot'] - df_det['start_slot']
+                                     ).dt.total_seconds() / 86400.0
+
+    df_det['Fecha Prevista'] = df_det['job'].map(
+        lambda j: date.today() + timedelta(days=pDate_map.get(j, 0) + pJobDur[j])
+    )
+    df_det['Fecha Real'] = df_det['finish_slot'].dt.date
+    df_det['Retraso (días)'] = df_det.apply(
+        lambda row: max((row['Fecha Real'] - row['Fecha Prevista']).days, 0), axis=1
+    )
+    df_det['⚠'] = df_det['Retraso (días)'].apply(lambda d: "❌" if d > 0 else "✅")
+
+    df_det = df_det[[
+        '⚠', 'plane', 'job', 'p',
+        'Fecha Prevista', 'Fecha Real',
+        'Duración Estimada (días)', 'Duración Real (días)', 'Retraso (días)'
+    ]]
+    df_det.columns = [
+        '⚠', 'Avión', 'Trabajo', 'Posición',
+        'Fecha Prevista', 'Fecha Real',
+        'Duración Estimada (días)', 'Duración Real (días)', 'Retraso (días)'
+    ]
+    print(df_det.to_string(index=False))
+
+    # 7) Retrasos por cliente
+    print("\n" + "=" * 80)
+    print("RETRASOS POR CLIENTE (según el modelo)")
+    print("=" * 80)
+    clientes = sorted(model_instance.sClients)
+    resumen_c = []
+    for c in clientes:
+        d = model_instance.vClientDelay[c].value
+        resumen_c.append({
+            'Cliente': c,
+            'Retraso (días)': int(d),
+            'Retraso (semanas)': round(d / 7.0, 2),
+            'Estado': "✅ Cumple" if d == 0 else "❌ Retraso"
+        })
+    print(pd.DataFrame(resumen_c).to_string(index=False))
+
+    # 8) Resumen ejecutivo
+    print("\n" + "=" * 80)
+    print("RESUMEN EJECUTIVO")
+    print("=" * 80)
+    total_t = len(df_det)
+    total_r = df_det['Retraso (días)'].gt(0).sum()
+    total_a = len(df['plane'].unique())
+    total_c = len(clientes)
+    c_retraso = [c for c in clientes if next(rc for rc in resumen_c if rc['Cliente'] == c)['Retraso (días)'] > 0]
+
+    print(f"📦 {total_t} trabajos procesados")
+    print(f"✈️  {total_a} aviones, {total_c} clientes")
+    print(f"🔴 {total_r} trabajos con retraso")
+    if c_retraso:
+        print(f"⚠️  Clientes con retrasos: {', '.join(map(str, c_retraso))}")
+    else:
+        print("🟢 Todos los clientes han cumplido sus fechas previstas")
+    print("\nℹ️  El retraso de un cliente solo considera su último trabajo.")
+    print("=" * 80)
+
+def plot_enhanced_solution(df_work, instance, html_path="gantt_idles_movs.html"):
     """
-    Recibe un DataFrame con columnas:
-      ['job','plane','p','start_slot','finish_slot']
-    Genera:
-     1) Un Diagrama de Gantt enriquecido (con flechas indicando cuando un avión cambia de posición).
-     2) Un gráfico de barras: número de movimientos (cambios de posición) por avión.
-    Exporta cada uno a su propio .html.
+    Construye el Gantt con:
+      - Trabajos: barras coloreadas.
+      - Idles: huecos con borde del color del avión.
+      - Sin flechas.
+      - Sin solapamientos de idles.
+    Devuelve: df_full (trabajos+idles), lista movimientos [(plane,p0,p1,t),...]
     """
+    # 1) Preparamos el DataFrame base de trabajos
+    df = df_work.rename(columns={'start_slot':'start','finish_slot':'finish'}).copy()
+    df['type'] = 'work'
 
-    # 1) Asegurarnos de que start_slot/finish_slot sean datetime
-    df2 = df.copy()
-    if df2['start_slot'].dtype == object:
-        df2['start_slot'] = pd.to_datetime(df2['start_slot'])
-    if df2['finish_slot'].dtype == object:
-        df2['finish_slot'] = pd.to_datetime(df2['finish_slot'])
+    # 2) Construimos mapa de ocupación POR POSICIÓN, arrancando con TODOS los trabajos:
+    positions = list(instance.sPositions)
+    occupancy = {p: [] for p in positions}
+    for _, row in df.iterrows():
+        # cada tupla (start,finish) ocupa la posición p
+        occupancy[row['p']].append((row['start'], row['finish']))
 
-    # 2) Ordenar por 'plane', luego por 'start_slot'
-    df2 = df2.sort_values(['plane', 'start_slot']).reset_index(drop=True)
+    # 3) Detectamos idles avión a avión, evitando solapamientos
+    idles = []
+    planes = sorted(df['plane'].unique())
+    for plane in planes:
+        grp = df[df['plane']==plane].sort_values('start').reset_index(drop=True)
+        for i in range(len(grp)-1):
+            fin = grp.loc[i,   'finish']
+            ini = grp.loc[i+1, 'start']
+            if fin < ini:
+                # buscamos posiciones completamente libres en [fin, ini)
+                libres = [
+                    p for p, intervals in occupancy.items()
+                    if all(e <= fin or s >= ini for (s,e) in intervals)
+                ]
+                pos_idle = libres[0] if libres else grp.loc[i,'p']
+                idles.append({
+                    'plane': plane,
+                    'type' : 'idle',
+                    'job'  : 'idle',
+                    'p'    : pos_idle,
+                    'start': fin,
+                    'finish': ini
+                })
+                # marcamos ese intervalo como ocupado
+                occupancy[pos_idle].append((fin, ini))
 
-    # 3) Detectar cambios de posición (movimientos) por cada avión
-    movimientos = []            # lista de tuplas (plane, fecha_cambio, pos_o, pos_d)
-    cnt_por_avion = {}          # { plane: # movimientos }
+    df_idle = pd.DataFrame(idles, columns=['plane','type','job','p','start','finish'])
+    df_full = pd.concat([df, df_idle], ignore_index=True)
 
-    for avion, grupo in df2.groupby('plane'):
-        cnt_por_avion[avion] = 0
-        grupo = grupo.reset_index(drop=True)
-        for i in range(len(grupo) - 1):
-            pos_o = grupo.loc[i, 'p']
-            pos_d = grupo.loc[i+1, 'p']
-            if pos_o != pos_d:
-                cnt_por_avion[avion] += 1
-                fecha_cambio = grupo.loc[i+1, 'start_slot']
-                movimientos.append((avion, fecha_cambio, pos_o, pos_d))
+    # 4) Mapa de colores por avión
+    palette   = px.colors.qualitative.Plotly
+    color_map = {plane: palette[i % len(palette)] for i, plane in enumerate(planes)}
 
-    # ——————————————————————————————————————————————————————————————————————
-    # 4) Diagrama de Gantt enriquecido (con flechas)
-    # ——————————————————————————————————————————————————————————————————————
-    fig_gantt = px.timeline(
-        df2,
-        x_start="start_slot",
-        x_end="finish_slot",
-        y="p",
-        color="plane",
-        hover_data=["job"],
-        title="Diagrama de Gantt Enriquecido"
-    )
-    fig_gantt.update_yaxes(title="Posición")
-    fig_gantt.update_xaxes(title="Fecha")
-
-    # Para dibujar flechas, necesitamos un mapeo posición→número
-    posiciones_orden = sorted(df2['p'].unique())
-    # Nota: Plotly permite usar directamente la etiqueta de texto (pos_o, pos_d) en el scatter
-    # siempre que el eje y sea categórico. Por simplicidad, pintamos flechas verticales:
-    for avion, fecha, pos_o, pos_d in movimientos:
-        fig_gantt.add_trace(
-            go.Scatter(
-                x=[fecha, fecha],
-                y=[pos_o, pos_d],
-                mode="lines+markers",
-                line=dict(color="black", width=2),
-                marker=dict(
-                    symbol="arrow-bar-up",
-                    angle=0,
-                    size=12
-                ),
-                showlegend=False,
-                hovertemplate=(
-                    f"Avión {avion}<br>"
-                    f"{pos_o} → {pos_d}<br>"
-                    f"{fecha.date()}<extra></extra>"
-                )
-            )
-        )
-
-    # Ajustamos la altura en función de cuántas posiciones haya
-    alto = 300 + 30 * len(posiciones_orden)
-    fig_gantt.update_layout(height=alto)
-
-    fig_gantt.write_html(gantt_html)
-    print(f"→ Gantt enriquecido guardado en: {gantt_html}")
-
-    # ——————————————————————————————————————————————————————————————————————
-    # 5) Gráfico de Barras: Movimientos Totales por Avión
-    # ——————————————————————————————————————————————————————————————————————
-    df_mov = pd.DataFrame(
-        [(avion, mv) for avion, mv in cnt_por_avion.items()],
-        columns=["plane", "movimientos"]
+    # 5) Timeline de trabajos
+    fig = px.timeline(
+        df,
+        x_start="start", x_end="finish", y="p",
+        color="plane", color_discrete_map=color_map,
+        hover_data=["job","type"],
+        title="Diagrama de Gantt con Idles (sin solapamientos)"
     )
 
-    fig_bar = px.bar(
-        df_mov,
-        x="plane",
-        y="movimientos",
-        title="Movimientos Totales por Avión",
-        text="movimientos"
+    # 6) Timeline de idles (huecos)
+    fig_idle = px.timeline(
+        df_idle,
+        x_start="start", x_end="finish", y="p",
+        color="plane", color_discrete_map=color_map,
+        hover_data=["type","job"]
     )
+    for trace in fig_idle.data:
+        plane = trace.name
+        trace.marker.color      = 'rgba(255,255,255,1)'    # transparente
+        trace.marker.line.color = color_map[plane]   # sólo borde
+        trace.marker.line.width = 2
+        trace.showlegend        = False
+        fig.add_trace(trace)
 
-    # Forzar que el eje Y arranque en 0, y que llegue al menos a 1 (si todas las barras fueran 0)
-    max_mov = df_mov['movimientos'].max()
-    fig_bar.update_yaxes(range=[0, max(max_mov, 1)])
+    # 7) Ajustes esteticos y guardado
+    fig.update_yaxes(
+        categoryorder='array',
+        categoryarray=list(reversed(positions))
+    )
+    fig.update_xaxes(title="Fecha")
+    fig.update_yaxes(title="Posición")
+    fig.write_html(html_path)
+    print(f"→ Gantt guardado en: {html_path}")
 
-    fig_bar.update_traces(textposition='outside')
-    fig_bar.update_xaxes(title="Avión")
-    fig_bar.update_yaxes(title="Movimientos (#)")
+    # 8) Generación de la lista de movimientos (para el reporte)
+    movimientos = []
+    for plane, grp in df_full.groupby('plane'):
+        grp = grp.sort_values('start').reset_index(drop=True)
+        for i in range(len(grp)-1):
+            p0, p1 = grp.loc[i,'p'], grp.loc[i+1,'p']
+            t1       = grp.loc[i+1,'start']
+            if p0 != p1:
+                movimientos.append((plane, p0, p1, t1))
 
-    fig_bar.write_html(bar_html)
-    print(f"→ Gráfico de movimientos por avión guardado en: {bar_html}")
+    return df_full, movimientos
 
     # # VERSION 1.0
 # def check_solution(data, solution):
@@ -1031,14 +1147,7 @@ def plot_enhanced_solution(
 
     # VERSION 2.0
 def check_solution(data, solution):
-        """
-        Verifica que la solución cumpla con todas las restricciones definidas en el modelo Pyomo (c01…c26).
-        Devuelve un dict con:
-          - all_constraints_satisfied: True/False
-          - constraints_verification: { nombre_restricción: { passed: bool, errors: [str, …] }, … }
-        """
 
-        # ————————————————————————— Unpack de datos de entrada ——————————————————————————
         sPositions = data.get('sPositions', [])
         sPositionsInterfere = data.get('sPositionsInterfere', [])
         sJobs = data.get('sJobs', [])
@@ -1049,13 +1158,11 @@ def check_solution(data, solution):
         pTaskOfJob = data.get('pTaskOfJob', {})
         pHorizon = data.get('pHorizon', 0)
 
-        # Sets generados en create_data
         sSlotsSequence = data.get('sSlotsSequence', [])  # lista de tuplas (s, s2, p)
         sJobSequence = data.get('sJobSequence', [])  # lista de tuplas (j, j2)
         sPosPosSlotSlot = data.get('sPosPosSlotSlot', [])  # lista de tuplas (s, s2, p, p2)
         sSwitchPlanes = data.get('sSwitchPlanes', [])  # lista de tuplas (p, s, s2, r, r2)
 
-        # ————————————————————— Unpack de la solución calculada —————————————————————
         slot_assignment = solution.get('slot_assignment', {})  # {(s,p): j}
         duration_slot = solution.get('duration_slot', {})  # {(s,p): valor}
         duration_slot_job = solution.get('duration_slot_job', {})  # {(s,p,j): valor}
@@ -1099,6 +1206,7 @@ def check_solution(data, solution):
         # —————————————————————————— c03: NullStartIfNotAssigned ——————————————————————————
         # ∀(s,p,j): start_slot_job[s,p,j] ≤ pHorizon·x[s,p,j]
         verification_results['c03_null_start_if_not_assigned'] = {'passed': True, 'errors': []}
+
         # —————————————————————————— c04: NullFinishIfNotAssigned ——————————————————————————
         # ∀(s,p,j): finish_slot_job[s,p,j] ≤ pHorizon·x[s,p,j]
         verification_results['c04_null_finish_if_not_assigned'] = {'passed': True, 'errors': []}
@@ -1471,10 +1579,13 @@ if __name__ == "__main__":
 
     # reading data from Excel
     # data = read_excel("input_data.xlsx", "case_1_plane")
-    data = read_excel("input_data.xlsx", "case_2_planes")
+    # data = read_excel("input_data.xlsx", "case_2_planes")
     # data = read_excel("input_data.xlsx", "case_3_planes")
-    # data = read_excel("input_data.xlsx", "case_4_planes")
+    # data = read_excel("input_data.xlsx", "case_3b_planes")
+    data = read_excel("input_data.xlsx", "case_4_planes")
     # data = read_excel("input_data.xlsx", "case_5_planes")
+    # data = read_excel("input_data.xlsx", "case_2")
+
 
     # Quick diagnose for loaded data
     print(f"Slots cargados: {len(data['sSlots'])}, Ejemplo: {data['sSlots'][:3]}")
@@ -1502,8 +1613,8 @@ if __name__ == "__main__":
     opt.options['DisplayInterval'] = 1   # Actualizar cada segundo
 
     # Configuración de límites para la resolución
-    opt.options['TimeLimit'] = 480       # Límite de tiempo en segundos (8 minutos)
-    opt.options['MIPGap'] = 0.05         # Gap relativo (5%)
+    opt.options['TimeLimit'] = 1000       # Límite de tiempo en segundos (8 minutos)
+    opt.options['MIPGap'] = 0.34         # Gap relativo (5%)
 
     # Configuración para priorizar heurísticas sobre Branch and Bound
     opt.options['Heuristics'] = 1.0      # Máximo esfuerzo en heurísticas (valor entre 0 y 1)
@@ -1610,52 +1721,98 @@ if __name__ == "__main__":
 
         print("\nGenerando gráfico de la solución...")
         print_chart(solution)
-        df=print_chart(solution)
+        df=print_chart(solution, html_path="gantt_basico.html")
 
         print("Generando diagrama mejorado de Gantt y resumen de movimientos…")
-        plot_enhanced_solution(
-            df,
-            gantt_html="gantt_enriquecido.html",
-            bar_html="movimientos_por_avion.html"
-        )
+        df_full, movimientos = plot_enhanced_solution(df, instance, html_path="gantt_idles_movs.html")
+
+        print("Report solución encontrada")
+        for r in instance.sPlanes:
+            print(f"Avión {r}:")
+            for j in instance.sJobs:
+                if (j, r) in instance.pLastJobOfPlane and value(instance.pLastJobOfPlane[j, r]) == 1:
+                    f_real = instance.vFinishJob[j].value
+                    f_teor = instance.pLateFinishOfPlane[r]
+                    print(f"  Último trabajo: {j}")
+                    print(f"    → Fecha real  = {f_real:.1f}")
+                    print(f"    → Fecha límite= {value(f_teor):.1f}")
+                    print(f"    → Retraso     = {instance.vPlaneDelay[r].value:.1f}")
+
+        generate_report(df_full, instance, movimientos)
     else:
         print("No se pudo encontrar una solución óptima.")
         print(f"Condición de terminación: {results.solver.termination_condition}")
 
     print("done")
 
-# Revisiones para comprobar correcto funcionamiento
-print("\n🔍 Revisión rápida de asignaciones por trabajo:")
-for j in instance.sJobs:
-    assigned_slots = [(s, p) for s in instance.sSlots for p in instance.sPositions if instance.v01JobInSlot[s, p, j].value == 1]
-    if len(assigned_slots) != 1:
-        print(f"⚠️ Job {j} está asignado a {len(assigned_slots)} slots: {assigned_slots}")
+#REVISIONES OPCINALES
+# # Revisiones para comprobar correcto funcionamiento
+# print("\n🔍 Revisión rápida de asignaciones por trabajo:")
+# for j in instance.sJobs:
+#     assigned_slots = [(s, p) for s in instance.sSlots for p in instance.sPositions if instance.v01JobInSlot[s, p, j].value == 1]
+#     if len(assigned_slots) != 1:
+#         print(f"⚠️ Job {j} está asignado a {len(assigned_slots)} slots: {assigned_slots}")
+#
+# print("\n🔍 Verificando dominios de v01JobInSlot:")
+# for s in instance.sSlots:
+#     for p in instance.sPositions:
+#         for j in instance.sJobs:
+#             exists = (s, p, j) in instance.v01JobInSlot
+#             print(f"  {'✔️' if exists else '❌'} v01JobInSlot[{s},{p},{j}]")
+#
+# print("→ Asignaciones (slot,v01JobInSlot[slot,p,j].value==1):")
+# for s in instance.sSlots:
+#     for p in instance.sPositions:
+#         for j in instance.sJobs:
+#             if value(instance.v01JobInSlot[s, p, j]) > 0.5:
+#                 print(f"   {j}  en  ({s}, {p})")
+# # 1) Asignaciones
+# for s in instance.sSlots:
+#     for p in instance.sPositions:
+#         for j in instance.sJobs:
+#             if value(instance.v01JobInSlot[s, p, j]) > 0.5:
+#                 print(f"{j} → ({s}, {p}), start={value(instance.vStartSlotForJob[s,p,j])}, finish={value(instance.vFinishSlotForJob[s,p,j])}")
+#
+# # 2) Tiempos globales
+# for j in instance.sJobs:
+#     print(f"{j}: global start={value(instance.vStartJob[j])}, global finish={value(instance.vFinishJob[j])}")
+#
+# # 3) Interferencias levantadas
+# for idx in instance.sPosPosSlotSlot:
+#     if value(instance.v01Alpha[idx]) > 0.5:
+#         print("Alpha activada en", idx)
 
-print("\n🔍 Verificando dominios de v01JobInSlot:")
-for s in instance.sSlots:
-    for p in instance.sPositions:
-        for j in instance.sJobs:
-            exists = (s, p, j) in instance.v01JobInSlot
-            print(f"  {'✔️' if exists else '❌'} v01JobInSlot[{s},{p},{j}]")
+from datetime import timedelta, date
 
-print("→ Asignaciones (slot,v01JobInSlot[slot,p,j].value==1):")
-for s in instance.sSlots:
-    for p in instance.sPositions:
-        for j in instance.sJobs:
-            if value(instance.v01JobInSlot[s, p, j]) > 0.5:
-                print(f"   {j}  en  ({s}, {p})")
-# 1) Asignaciones
-for s in instance.sSlots:
-    for p in instance.sPositions:
-        for j in instance.sJobs:
-            if value(instance.v01JobInSlot[s, p, j]) > 0.5:
-                print(f"{j} → ({s}, {p}), start={value(instance.vStartSlotForJob[s,p,j])}, finish={value(instance.vFinishSlotForJob[s,p,j])}")
+# Asume que ya tienes en memoria:
+#   - `instance` (la instancia Pyomo)
+#   - `solution` (el dict que te devolvió get_solution_data)
 
-# 2) Tiempos globales
-for j in instance.sJobs:
-    print(f"{j}: global start={value(instance.vStartJob[j])}, global finish={value(instance.vFinishJob[j])}")
+# Define tu fecha base si la usas para convertir días a fecha
+START_DATE = date.today()
 
-# 3) Interferencias levantadas
-for idx in instance.sPosPosSlotSlot:
-    if value(instance.v01Alpha[idx]) > 0.5:
-        print("Alpha activada en", idx)
+movements = []
+
+for r in instance.sPlanes:
+    # 1) Recoge todos los "segmentos" donde r hace un trabajo
+    segs = []
+    for (s, p), job in solution['slot_assignment'].items():
+        if instance.pPlaneOfJob[job] == r:
+            t0 = solution['start_slot'][(s, p)]
+            t1 = solution['finish_slot'][(s, p)]
+            segs.append((t0, t1, p))
+    # 2) Ordena cronológicamente
+    segs.sort(key=lambda x: x[0])
+    # 3) Detecta cambios de posición
+    for i in range(len(segs)-1):
+        _, _, p0 = segs[i]
+        t_next, _, p1 = segs[i+1]
+        if p0 != p1:
+            # tiempo en días → fecha real
+            fecha = START_DATE + timedelta(days=int(t_next))
+            movements.append((r, p0, p1, fecha))
+
+# 4) Imprime
+print("Movimientos detectados:")
+for plane, p0, p1, t in movimientos:
+    print(f"  Avión {plane}: {p0} → {p1} el {t.date()}")
