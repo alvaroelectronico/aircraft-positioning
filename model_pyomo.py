@@ -41,7 +41,7 @@ def ap_pyomo_model():
     model.pPlaneOfJob = Param(model.sJobs)
     model.pAirplaneOfClient = Param(model.sClients, model.sPlanes)
     model.pLastJobOfPlane = Param(model.sJobs, model.sPlanes, mutable=True)
-    model.pLateFinishOfPlane = Param(model.sPlanes, mutable=True)
+    model.pPredictedFinishOfPlane = Param(model.sPlanes, mutable=True)
     model.pTaskOfJob = Param(model.sJobs, within=PositiveIntegers)
     model.pNumJobsPerPlane = Param(model.sPlanes, within=NonNegativeIntegers)
     model.prev_slot = Param( model.sSlots,default=None,within=model.sSlots | {None})
@@ -163,7 +163,7 @@ def ap_pyomo_model():
     def fc09_Plane_delay(model,r):
         # para cada (j,r) con L[j,r]=1, impongo H*γ_r ≥ f[j] - T[r]
         return model.vPlaneDelay[r] >= sum(
-            (model.vFinishJob[j] - model.pLateFinishOfPlane[r]) * model.pLastJobOfPlane[j, r]
+            (model.vFinishJob[j] - model.pPredictedFinishOfPlane[r]) * model.pLastJobOfPlane[j, r]
             for j in model.sJobs if (j, r) in model.pLastJobOfPlane
         )
 
@@ -583,7 +583,7 @@ def read_excel(file_name, sheet_name):
         'pTaskOfJob': pTaskOfJob,
         'pDate': pDate,
         'pHorizon': pHorizon,
-        'pLateFinishOfPlane': max_finish_by_plane,
+        'pPredictedFinishOfPlane': max_finish_by_plane,
         'pAirplaneOfClient': dic_pAirplaneOfClient,
         'pLastJobOfPlane': dic_pLastJobOfPlane,
     }
@@ -604,7 +604,7 @@ def create_data(data):
     pTaskOfJob = data.get('pTaskOfJob')
     pAirplaneOfClient = data.get('pAirplaneOfClient', None)
     pLastJobOfPlane = data.get('pLastJobOfPlane', None)
-    pLateFinishOfPlane = data.get('pLateFinishOfPlane', None)
+    pPredictedFinishOfPlane = data.get('pPredictedFinishOfPlane', None)
     pNumJobsPerPlane = {
         r: sum(1 for j in sJobs if pPlaneOfJob[j] == r)
         for r in sPlanes
@@ -699,7 +699,7 @@ def create_data(data):
         'pDate': pDate,
         'pAirplaneOfClient': pAirplaneOfClient,
         'pLastJobOfPlane': pLastJobOfPlane,
-        'pLateFinishOfPlane': pLateFinishOfPlane,
+        'pPredictedFinishOfPlane': pPredictedFinishOfPlane,
         'pNumJobsPerPlane': pNumJobsPerPlane,
         # 'pLastSlotOfPlane': LastSlotOfPlane,
         # 'pFirstSlotOfPlane': FirstSlotOfPlane,
@@ -1042,426 +1042,601 @@ def plot_enhanced_solution(df_work, instance, html_path="gantt_idles_movs.html")
     return df_full, movimientos
 
 
+
+
 def check_solution(data, solution):
+    # Extraer sets y parámetros
+    sSlots = data.get('sSlots', [])
+    sPositions = data.get('sPositions', [])
+    sJobs = data.get('sJobs', [])
+    sPlanes = data.get('sPlanes', [])
+    sClients = data.get('sClients', [])
+    pJobDuration = data.get('pJobDuration', {})
+    pPlaneOfJob = data.get('pPlaneOfJob', {})
+    pLastJobOfPlane = data.get('pLastJobOfPlane', {})
+    pFirstJobOfPlane = data.get('pFirstJobOfPlane', {})
+    pPredictedFinishOfPlane = data.get('pPredictedFinishOfPlane', {})
+    pAirplaneOfClient = data.get('pAirplaneOfClient', {})
+    pHorizon = data.get('pHorizon', 0)
 
-        sPositions = data.get('sPositions', [])
-        sPositionsInterference = data.get('sPositionsInterference', [])
-        sJobs = data.get('sJobs', [])
-        sPlanes = data.get('sPlanes', [])
-        sSlots = data.get('sSlots', [])
-        pJobDuration = data.get('pJobDuration', {})
-        pPlaneOfJob = data.get('pPlaneOfJob', {})
-        pTaskOfJob = data.get('pTaskOfJob', {})
-        pHorizon = data.get('pHorizon', 0)
+    sSlotsSequence = data.get('sSlotsSequence', [])
+    sJobSequence = data.get('sJobSequence', [])
+    sPosPosSlotSlot = data.get('sPosPosSlotSlot', [])
+    sSwitchPlanes = data.get('sSwitchPlanes', [])
 
-        sSlotsSequence = data.get('sSlotsSequence', [])  # lista de tuplas (s, s2, p)
-        sJobSequence = data.get('sJobSequence', [])  # lista de tuplas (j, j2)
-        sPosPosSlotSlot = data.get('sPosPosSlotSlot', [])  # lista de tuplas (s, s2, p, p2)
-        sSwitchPlanes = data.get('sSwitchPlanes', [])  # lista de tuplas (p, s, s2, r, r2)
+    # Solución devuelta
+    slot_assignment = solution.get('slot_assignment', {})  # {(s,p): j}
+    duration_slot = solution.get('duration_slot', {})  # {(s,p): val}
+    duration_slot_job = solution.get('duration_slot_job', {})  # {(s,p,j): val}
+    interference_list = solution.get('interference', [])  # [(s,s2,p,p2), ...]
+    start_slot_job = solution.get('start_slot_job', {})  # {(s,p,j): val}
+    finish_slot_job = solution.get('finish_slot_job', {})  # {(s,p,j): val}
+    start_slot = solution.get('start_slot', {})  # {(s,p): val}
+    finish_slot = solution.get('finish_slot', {})  # {(s,p): val}
+    start_job = solution.get('start_job', {})  # {j: val}
+    finish_job = solution.get('finish_job', {})  # {j: val}
+    # Nuevas variables de presencia y idle
+    presence = solution.get('presence', {})  # {(s,p,r): 0/1}
+    plane_in_slot = solution.get('plane_in_slot', {})  # {(s,p,r): 0/1}
+    idle = solution.get('idle', {})  # {(s,p,r): 0/1}
+    start_presence = solution.get('start_presence', {})  # {(s,p,r): val}
+    finish_presence = solution.get('finish_presence', {})  # {(s,p,r): val}
+    switch_planes = solution.get('switch_planes', {})  # {(s_prev,p): 0/1}
+    plane_delay = solution.get('plane_delay', {})
 
-        slot_assignment = solution.get('slot_assignment', {})  # {(s,p): j}
-        duration_slot = solution.get('duration_slot', {})  # {(s,p): valor}
-        duration_slot_job = solution.get('duration_slot_job', {})  # {(s,p,j): valor}
-        interference_list = solution.get('interference', [])  # lista de índices (s,s2,p,p2) donde alpha=1
-        start_slot_job = solution.get('start_slot_job', {})  # {(s,p,j): valor}
-        finish_slot_job = solution.get('finish_slot_job', {})  # {(s,p,j): valor}
-        start_slot = solution.get('start_slot', {})  # {(s,p): valor}
-        finish_slot = solution.get('finish_slot', {})  # {(s,p): valor}
-        start_job = solution.get('start_job', {})  # {j: valor}
-        finish_job = solution.get('finish_job', {})  # {j: valor}
+    verification_results = {}
+    M = pHorizon
 
-        verification_results = {}
-
-        # —————————————————————————— c01: SingleJobPerSlot ——————————————————————————
-        # ∀(s,p): sum_j x[s,p,j] ≤ 1
-        verification_results['c01_single_job_per_slot'] = {'passed': True, 'errors': []}
-        for s in sSlots:
-            for p in sPositions:
-                jobs_here = [j for (ss, pp), j in slot_assignment.items() if ss == s and pp == p]
-                if len(jobs_here) > 1:
-                    verification_results['c01_single_job_per_slot']['passed'] = False
-                    verification_results['c01_single_job_per_slot']['errors'].append(
-                        f"Ranura {s}, posición {p} tiene múltiples trabajos asignados: {jobs_here}"
-                    )
-
-        # —————————————————————————— c02: SlotJobDuration ——————————————————————————
-        # ∀(s,p,j): duration_slot_job[s,p,j] == finish_slot_job[s,p,j] - start_slot_job[s,p,j]
-        verification_results['c02_slot_job_duration'] = {'passed': True, 'errors': []}
-        for s in sSlots:
-            for p in sPositions:
-                for j in sJobs:
-                    d_val = duration_slot_job.get((s, p, j), 0.0)
-                    t0 = start_slot_job.get((s, p, j), 0.0)
-                    t1 = finish_slot_job.get((s, p, j), 0.0)
-                    if abs(d_val - (t1 - t0)) > 1e-6:
-                        verification_results['c02_slot_job_duration']['passed'] = False
-                        verification_results['c02_slot_job_duration']['errors'].append(
-                            f"(s={s},p={p},j={j}): vDurationSlotForJob={d_val:.4f} ≠ finish-start={(t1 - t0):.4f}"
-                        )
-
-        # —————————————————————————— c03: NullStartIfNotAssigned ——————————————————————————
-        # ∀(s,p,j): start_slot_job[s,p,j] ≤ pHorizon·x[s,p,j]
-        verification_results['c03_null_start_if_not_assigned'] = {'passed': True, 'errors': []}
-
-        # —————————————————————————— c04: NullFinishIfNotAssigned ——————————————————————————
-        # ∀(s,p,j): finish_slot_job[s,p,j] ≤ pHorizon·x[s,p,j]
-        verification_results['c04_null_finish_if_not_assigned'] = {'passed': True, 'errors': []}
-        for s in sSlots:
-            for p in sPositions:
-                for j in sJobs:
-                    x_val = 1 if slot_assignment.get((s, p)) == j else 0
-                    t0 = start_slot_job.get((s, p, j), 0.0)
-                    t1 = finish_slot_job.get((s, p, j), 0.0)
-                    if t0 > pHorizon * x_val + 1e-6:
-                        verification_results['c03_null_start_if_not_assigned']['passed'] = False
-                        verification_results['c03_null_start_if_not_assigned']['errors'].append(
-                            f"(s={s},p={p},j={j}): start_slot_job={t0:.4f} > Horizon*{x_val}={pHorizon * x_val:.4f}"
-                        )
-                    if t1 > pHorizon * x_val + 1e-6:
-                        verification_results['c04_null_finish_if_not_assigned']['passed'] = False
-                        verification_results['c04_null_finish_if_not_assigned']['errors'].append(
-                            f"(s={s},p={p},j={j}): finish_slot_job={t1:.4f} > Horizon*{x_val}={pHorizon * x_val:.4f}"
-                        )
-
-        # —————————————————————————— c05: JobDuration ——————————————————————————
-        # ∀j: sum_{s,p} duration_slot_job[s,p,j] == pJobDuration[j]
-        verification_results['c05_job_duration'] = {'passed': True, 'errors': []}
-        for j in sJobs:
-            suma = sum(duration_slot_job.get((s, p, j), 0.0) for s in sSlots for p in sPositions)
-            if abs(suma - pJobDuration.get(j, 0.0)) > 1e-6:
-                verification_results['c05_job_duration']['passed'] = False
-                verification_results['c05_job_duration']['errors'].append(
-                    f"Trabajo {j}: suma_duración_fragmentos={suma:.4f} ≠ pJobDuration({pJobDuration.get(j)})"
-                )
-
-        # —————————————————————————— c06 & c07: Start/end global con Big-M ——————————————————————————
-        # ∀(s,p,j): vStartJob[j] ≤ start_slot_job[s,p,j] + M(1-x)
-        #            vStartJob[j] ≥ start_slot_job[s,p,j] - M(1-x)
-        #            vFinishJob[j] ≥ finish_slot_job[s,p,j] - M(1-x)
-        #            vFinishJob[j] ≤ finish_slot_job[s,p,j] + M(1-x)
-        verification_results['c06_startjob_bigM'] = {'passed': True, 'errors': []}
-        verification_results['c07_finishjob_bigM'] = {'passed': True, 'errors': []}
-        M = pHorizon
-        for s in sSlots:
-            for p in sPositions:
-                for j in sJobs:
-                    x_val = 1 if slot_assignment.get((s, p)) == j else 0
-                    st_frag = start_slot_job.get((s, p, j), 0.0)
-                    fn_frag = finish_slot_job.get((s, p, j), 0.0)
-                    st_j = start_job.get(j, 0.0)
-                    fn_j = finish_job.get(j, 0.0)
-                    # c06 upper
-                    if st_j - (st_frag + M * (1 - x_val)) > 1e-6:
-                        verification_results['c06_startjob_bigM']['passed'] = False
-                        verification_results['c06_startjob_bigM']['errors'].append(
-                            f"(s={s},p={p},j={j}): start_job={st_j:.4f} > frag_start+M(1-x)={st_frag + M * (1 - x_val):.4f}"
-                        )
-                    # c06 lower
-                    if (st_frag - M * (1 - x_val)) - st_j > 1e-6:
-                        verification_results['c06_startjob_bigM']['passed'] = False
-                        verification_results['c06_startjob_bigM']['errors'].append(
-                            f"(s={s},p={p},j={j}): frag_start-M(1-x)={st_frag - M * (1 - x_val):.4f} > start_job={st_j:.4f}"
-                        )
-                    # c07 lower
-                    if ((fn_frag - M * (1 - x_val)) - fn_j) > 1e-6:
-                        verification_results['c07_finishjob_bigM']['passed'] = False
-                        verification_results['c07_finishjob_bigM']['errors'].append(
-                            f"(s={s},p={p},j={j}): frag_finish-M(1-x)={fn_frag - M * (1 - x_val):.4f} > finish_job={fn_j:.4f}"
-                        )
-                    # c07 upper
-                    if fn_j - (fn_frag + M * (1 - x_val)) > 1e-6:
-                        verification_results['c07_finishjob_bigM']['passed'] = False
-                        verification_results['c07_finishjob_bigM']['errors'].append(
-                            f"(s={s},p={p},j={j}): finish_job={fn_j:.4f} > frag_finish+M(1-x)={fn_frag + M * (1 - x_val):.4f}"
-                        )
-
-        # —————————————————————————— c08: StartFinishRelation ——————————————————————————
-        # ∀j: start_job[j] ≤ finish_job[j]
-        verification_results['c08_start_finish_relation'] = {'passed': True, 'errors': []}
-        for j in sJobs:
-            st_j = start_job.get(j, 0.0)
-            fn_j = finish_job.get(j, 0.0)
-            if st_j - fn_j > 1e-6:
-                verification_results['c08_start_finish_relation']['passed'] = False
-                verification_results['c08_start_finish_relation']['errors'].append(
-                    f"Job {j}: start={st_j:.4f} > finish={fn_j:.4f}"
-                )
-
-        # —————————————————————————— c11: SlotStartTime ——————————————————————————
-        # ∀(s,p): start_slot[s,p] == sum_j start_slot_job[s,p,j]
-        verification_results['c11_slot_start_time'] = {'passed': True, 'errors': []}
-        for s in sSlots:
-            for p in sPositions:
-                suma_starts = sum(start_slot_job.get((s, p, j), 0.0) for j in sJobs)
-                vs = start_slot.get((s, p), 0.0)
-                if abs(vs - suma_starts) > 1e-6:
-                    verification_results['c11_slot_start_time']['passed'] = False
-                    verification_results['c11_slot_start_time']['errors'].append(
-                        f"(s={s},p={p}): vStartSlot={vs:.4f} ≠ suma(starts)={suma_starts:.4f}"
-                    )
-
-        # —————————————————————————— c12: SlotFinishTime ——————————————————————————
-        # ∀(s,p): finish_slot[s,p] == sum_j finish_slot_job[s,p,j]
-        verification_results['c12_slot_finish_time'] = {'passed': True, 'errors': []}
-        for s in sSlots:
-            for p in sPositions:
-                suma_fins = sum(finish_slot_job.get((s, p, j), 0.0) for j in sJobs)
-                vf = finish_slot.get((s, p), 0.0)
-                if abs(vf - suma_fins) > 1e-6:
-                    verification_results['c12_slot_finish_time']['passed'] = False
-                    verification_results['c12_slot_finish_time']['errors'].append(
-                        f"(s={s},p={p}): vFinishSlot={vf:.4f} ≠ suma(finishes)={suma_fins:.4f}"
-                    )
-
-        # —————————————————————————— c13: SlotSequence ——————————————————————————
-        # ∀(s,s2,p) ∈ sSlotsSequence: start_slot[s,p] ≥ finish_slot[s2,p]
-        verification_results['c13_slot_sequence'] = {'passed': True, 'errors': []}
-        for (s, s2, p) in sSlotsSequence:
-            st_s = start_slot.get((s, p), 0.0)
-            fn_s2 = finish_slot.get((s2, p), 0.0)
-            if st_s + 1e-6 < fn_s2:
-                verification_results['c13_slot_sequence']['passed'] = False
-                verification_results['c13_slot_sequence']['errors'].append(
-                    f"SlotSequence: start[{s},{p}]={st_s:.4f} < finish[{s2},{p}]={fn_s2:.4f}"
-                )
-
-        # —————————————————————————— c14: JobSequence ——————————————————————————
-        # ∀(j,j2) ∈ sJobSequence: start_job[j2] ≥ finish_job[j]
-        verification_results['c14_job_sequence'] = {'passed': True, 'errors': []}
-        for (j, j2) in sJobSequence:
-            st_j2 = start_job.get(j2, 0.0)
-            fn_j = finish_job.get(j, 0.0)
-            if st_j2 + 1e-6 < fn_j:
-                verification_results['c14_job_sequence']['passed'] = False
-                verification_results['c14_job_sequence']['errors'].append(
-                    f"JobSequence: start_job[{j2}]={st_j2:.4f} < finish_job[{j}]={fn_j:.4f}"
-                )
-
-        # —————————————————————————— c15: ConsecutiveSlots ——————————————————————————
-        # ∀(s>primero, p): sum_j x[s,p,j] == sum_j x[s_prev,p,j]
-        verification_results['c15_consecutive_slots'] = {'passed': True, 'errors': []}
-        ordered_slots = sorted(sSlots, key=lambda x: int(x.replace('slot', '')))
+    # —————————————————————————— c01: SingleJobPerSlot ——————————————————————————
+    # ∀(s,p): sum_j x[s,p,j] ≤ 1
+    verification_results['c01_single_job_per_slot'] = {'passed': True, 'errors': []}
+    for s in sSlots:
         for p in sPositions:
-            for idx in range(1, len(ordered_slots)):
-                s = ordered_slots[idx]
-                prev_s = ordered_slots[idx - 1]
-                suma_s = sum(1 for j in sJobs if slot_assignment.get((s, p)) == j)
-                suma_prev = sum(1 for j in sJobs if slot_assignment.get((prev_s, p)) == j)
-                if suma_s > suma_prev:
-                    verification_results['c15_consecutive_slots']['passed'] = False
-                    verification_results['c15_consecutive_slots']['errors'].append(
-                        f"ConsecutiveSlots: posición {p}: {s} tiene {suma_s} jobs, pero {prev_s} tiene {suma_prev}"
-                    )
-
-        # —————————————————————————— c16: SingleSlotPerJob ——————————————————————————
-        # ∀j: sum_{s,p} x[s,p,j] == 1
-        verification_results['c16_single_slot_per_job'] = {'passed': True, 'errors': []}
-        for j in sJobs:
-            cuenta = sum(1 for (_, _), job in slot_assignment.items() if job == j)
-            if cuenta != 1:
-                verification_results['c16_single_slot_per_job']['passed'] = False
-                verification_results['c16_single_slot_per_job']['errors'].append(
-                    f"Job {j} asignado en {cuenta} slots (debe 1)"
+            jobs_here = [j for (ss, pp), j in slot_assignment.items() if ss == s and pp == p]
+            if len(jobs_here) > 1:
+                verification_results['c01_single_job_per_slot']['passed'] = False
+                verification_results['c01_single_job_per_slot']['errors'].append(
+                    f"Ranura {s}, posición {p} tiene múltiples trabajos asignados: {jobs_here}"
                 )
 
-        # —————————————————————————— c17: DurationIfNotAssigned ——————————————————————————
-        # ∀(s,p,j): finish_slot_job[s,p,j] - start_slot_job[s,p,j] ≥ pJobDuration[j]·x[s,p,j]
-        verification_results['c17_duration_if_not_assigned'] = {'passed': True, 'errors': []}
-        for s in sSlots:
-            for p in sPositions:
+    # —————————————————————————— c02: SlotJobDuration ——————————————————————————
+    # ∀(s,p,j): duration_slot_job[s,p,j] == finish_slot_job[s,p,j] - start_slot_job[s,p,j]
+    verification_results['c02_slot_job_duration'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for j in sJobs:
+                d_val = duration_slot_job.get((s, p, j), 0.0)
+                t0 = start_slot_job.get((s, p, j), 0.0)
+                t1 = finish_slot_job.get((s, p, j), 0.0)
+                if abs(d_val - (t1 - t0)) > 1e-6:
+                    verification_results['c02_slot_job_duration']['passed'] = False
+                    verification_results['c02_slot_job_duration']['errors'].append(
+                        f"(s={s},p={p},j={j}): vDurationSlotForJob={d_val:.4f} ≠ finish-start={(t1 - t0):.4f}"
+                    )
+
+    # —————————————————————————— c03: NullStartIfNotAssigned ——————————————————————————
+    # ∀(s,p,j): start_slot_job[s,p,j] ≤ pHorizon·x[s,p,j]
+    verification_results['c03_null_start_if_not_assigned'] = {'passed': True, 'errors': []}
+
+    # —————————————————————————— c04: NullFinishIfNotAssigned ——————————————————————————
+    # ∀(s,p,j): finish_slot_job[s,p,j] ≤ pHorizon·x[s,p,j]
+    verification_results['c04_null_finish_if_not_assigned'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for j in sJobs:
+                x_val = 1 if slot_assignment.get((s, p)) == j else 0
+                t0 = start_slot_job.get((s, p, j), 0.0)
+                t1 = finish_slot_job.get((s, p, j), 0.0)
+                if t0 > pHorizon * x_val + 1e-6:
+                    verification_results['c03_null_start_if_not_assigned']['passed'] = False
+                    verification_results['c03_null_start_if_not_assigned']['errors'].append(
+                        f"(s={s},p={p},j={j}): start_slot_job={t0:.4f} > Horizon*{x_val}={pHorizon * x_val:.4f}"
+                    )
+                if t1 > pHorizon * x_val + 1e-6:
+                    verification_results['c04_null_finish_if_not_assigned']['passed'] = False
+                    verification_results['c04_null_finish_if_not_assigned']['errors'].append(
+                        f"(s={s},p={p},j={j}): finish_slot_job={t1:.4f} > Horizon*{x_val}={pHorizon * x_val:.4f}"
+                    )
+
+    # —————————————————————————— c05: JobDuration ——————————————————————————
+    # ∀j: sum_{s,p} duration_slot_job[s,p,j] == pJobDuration[j]
+    verification_results['c05_job_duration'] = {'passed': True, 'errors': []}
+    for j in sJobs:
+        suma = sum(duration_slot_job.get((s, p, j), 0.0) for s in sSlots for p in sPositions)
+        if abs(suma - pJobDuration.get(j, 0.0)) > 1e-6:
+            verification_results['c05_job_duration']['passed'] = False
+            verification_results['c05_job_duration']['errors'].append(
+                f"Trabajo {j}: suma_duración_fragmentos={suma:.4f} ≠ pJobDuration({pJobDuration.get(j)})"
+            )
+
+    # —————————————————————————— c06 & c07: Start/end global con Big-M ——————————————————————————
+    # ∀(s,p,j): vStartJob[j] ≤ start_slot_job[s,p,j] + M(1-x)
+    #            vStartJob[j] ≥ start_slot_job[s,p,j] - M(1-x)
+    #            vFinishJob[j] ≥ finish_slot_job[s,p,j] - M(1-x)
+    #            vFinishJob[j] ≤ finish_slot_job[s,p,j] + M(1-x)
+    verification_results['c06_startjob_bigM'] = {'passed': True, 'errors': []}
+    verification_results['c07_finishjob_bigM'] = {'passed': True, 'errors': []}
+    M = pHorizon
+    for s in sSlots:
+        for p in sPositions:
+            for j in sJobs:
+                x_val = 1 if slot_assignment.get((s, p)) == j else 0
+                st_frag = start_slot_job.get((s, p, j), 0.0)
+                fn_frag = finish_slot_job.get((s, p, j), 0.0)
+                st_j = start_job.get(j, 0.0)
+                fn_j = finish_job.get(j, 0.0)
+                # c06 upper
+                if st_j - (st_frag + M * (1 - x_val)) > 1e-6:
+                    verification_results['c06_startjob_bigM']['passed'] = False
+                    verification_results['c06_startjob_bigM']['errors'].append(
+                        f"(s={s},p={p},j={j}): start_job={st_j:.4f} > frag_start+M(1-x)={st_frag + M * (1 - x_val):.4f}"
+                    )
+                # c06 lower
+                if (st_frag - M * (1 - x_val)) - st_j > 1e-6:
+                    verification_results['c06_startjob_bigM']['passed'] = False
+                    verification_results['c06_startjob_bigM']['errors'].append(
+                        f"(s={s},p={p},j={j}): frag_start-M(1-x)={st_frag - M * (1 - x_val):.4f} > start_job={st_j:.4f}"
+                    )
+                # c07 lower
+                if ((fn_frag - M * (1 - x_val)) - fn_j) > 1e-6:
+                    verification_results['c07_finishjob_bigM']['passed'] = False
+                    verification_results['c07_finishjob_bigM']['errors'].append(
+                        f"(s={s},p={p},j={j}): frag_finish-M(1-x)={fn_frag - M * (1 - x_val):.4f} > finish_job={fn_j:.4f}"
+                    )
+                # c07 upper
+                if fn_j - (fn_frag + M * (1 - x_val)) > 1e-6:
+                    verification_results['c07_finishjob_bigM']['passed'] = False
+                    verification_results['c07_finishjob_bigM']['errors'].append(
+                        f"(s={s},p={p},j={j}): finish_job={fn_j:.4f} > frag_finish+M(1-x)={fn_frag + M * (1 - x_val):.4f}"
+                    )
+
+    # —————————————————————————— c08: StartFinishRelation ——————————————————————————
+    # ∀j: start_job[j] ≤ finish_job[j]
+    verification_results['c08_start_finish_relation'] = {'passed': True, 'errors': []}
+    for j in sJobs:
+        st_j = start_job.get(j, 0.0)
+        fn_j = finish_job.get(j, 0.0)
+        if st_j - fn_j > 1e-6:
+            verification_results['c08_start_finish_relation']['passed'] = False
+            verification_results['c08_start_finish_relation']['errors'].append(
+                f"Job {j}: start={st_j:.4f} > finish={fn_j:.4f}"
+            )
+
+    # —————————————————————————— c09: PlaneDelay (nueva fc09) ——————————————————————————
+    verification_results['c09_plane_delay'] = {'passed': True, 'errors': []}
+    for r in sPlanes:
+        lhs = plane_delay.get(r, 0.0)
+        # sólo el último trabajo de r contribuye:
+        sum_term = (sum(
+            (finish_job.get(j, 0.0) - pPredictedFinishOfPlane.get(r, 0.0))
+            * pLastJobOfPlane.get((j, r), 0)
+            for j in sJobs
+        ))
+        if lhs + 1e-6 < sum_term:
+            verification_results['c09_plane_delay']['passed'] = False
+            verification_results['c09_plane_delay']['errors'].append(
+                f"Avión {r}: vPlaneDelay={lhs:.4f} < (finish_last - deadline)={sum_term:.4f}"
+            )
+
+    # —————————————————————————— c11: SlotStartTime ——————————————————————————
+    # ∀(s,p): start_slot[s,p] == sum_j start_slot_job[s,p,j]
+    verification_results['c11_slot_start_time'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            suma_starts = sum(start_slot_job.get((s, p, j), 0.0) for j in sJobs)
+            vs = start_slot.get((s, p), 0.0)
+            if abs(vs - suma_starts) > 1e-6:
+                verification_results['c11_slot_start_time']['passed'] = False
+                verification_results['c11_slot_start_time']['errors'].append(
+                    f"(s={s},p={p}): vStartSlot={vs:.4f} ≠ suma(starts)={suma_starts:.4f}"
+                )
+
+    # —————————————————————————— c12: SlotFinishTime ——————————————————————————
+    # ∀(s,p): finish_slot[s,p] == sum_j finish_slot_job[s,p,j]
+    verification_results['c12_slot_finish_time'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            suma_fins = sum(finish_slot_job.get((s, p, j), 0.0) for j in sJobs)
+            vf = finish_slot.get((s, p), 0.0)
+            if abs(vf - suma_fins) > 1e-6:
+                verification_results['c12_slot_finish_time']['passed'] = False
+                verification_results['c12_slot_finish_time']['errors'].append(
+                    f"(s={s},p={p}): vFinishSlot={vf:.4f} ≠ suma(finishes)={suma_fins:.4f}"
+                )
+
+    # —————————————————————————— c13: SlotSequence ——————————————————————————
+    # ∀(s,s2,p) ∈ sSlotsSequence: start_slot[s,p] ≥ finish_slot[s2,p]
+    verification_results['c13_slot_sequence'] = {'passed': True, 'errors': []}
+    for (s, s2, p) in sSlotsSequence:
+        st_s = start_slot.get((s, p), 0.0)
+        fn_s2 = finish_slot.get((s2, p), 0.0)
+        if st_s + 1e-6 < fn_s2:
+            verification_results['c13_slot_sequence']['passed'] = False
+            verification_results['c13_slot_sequence']['errors'].append(
+                f"SlotSequence: start[{s},{p}]={st_s:.4f} < finish[{s2},{p}]={fn_s2:.4f}"
+            )
+
+    # —————————————————————————— c14: JobSequence ——————————————————————————
+    # ∀(j,j2) ∈ sJobSequence: start_job[j2] ≥ finish_job[j]
+    verification_results['c14_job_sequence'] = {'passed': True, 'errors': []}
+    for (j, j2) in sJobSequence:
+        st_j2 = start_job.get(j2, 0.0)
+        fn_j = finish_job.get(j, 0.0)
+        if st_j2 + 1e-6 < fn_j:
+            verification_results['c14_job_sequence']['passed'] = False
+            verification_results['c14_job_sequence']['errors'].append(
+                f"JobSequence: start_job[{j2}]={st_j2:.4f} < finish_job[{j}]={fn_j:.4f}"
+            )
+
+    # —————————————————————————— c15: ConsecutiveSlots ——————————————————————————
+    # ∀(s>primero, p): sum_j x[s,p,j] == sum_j x[s_prev,p,j]
+    verification_results['c15_consecutive_slots'] = {'passed': True, 'errors': []}
+    ordered_slots = sorted(sSlots, key=lambda x: int(x.replace('slot', '')))
+    for p in sPositions:
+        for idx in range(1, len(ordered_slots)):
+            s = ordered_slots[idx]
+            prev_s = ordered_slots[idx - 1]
+            suma_s = sum(1 for j in sJobs if slot_assignment.get((s, p)) == j)
+            suma_prev = sum(1 for j in sJobs if slot_assignment.get((prev_s, p)) == j)
+            if suma_s > suma_prev:
+                verification_results['c15_consecutive_slots']['passed'] = False
+                verification_results['c15_consecutive_slots']['errors'].append(
+                    f"ConsecutiveSlots: posición {p}: {s} tiene {suma_s} jobs, pero {prev_s} tiene {suma_prev}"
+                )
+
+    # —————————————————————————— c16: SingleSlotPerJob ——————————————————————————
+    # ∀j: sum_{s,p} x[s,p,j] == 1
+    verification_results['c16_single_slot_per_job'] = {'passed': True, 'errors': []}
+    for j in sJobs:
+        cuenta = sum(1 for (_, _), job in slot_assignment.items() if job == j)
+        if cuenta != 1:
+            verification_results['c16_single_slot_per_job']['passed'] = False
+            verification_results['c16_single_slot_per_job']['errors'].append(
+                f"Job {j} asignado en {cuenta} slots (debe 1)"
+            )
+
+    # —————————————————————————— c17: DurationIfNotAssigned ——————————————————————————
+    # ∀(s,p,j): finish_slot_job[s,p,j] - start_slot_job[s,p,j] ≥ pJobDuration[j]·x[s,p,j]
+    verification_results['c17_duration_if_not_assigned'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for j in sJobs:
+                x_val = 1 if slot_assignment.get((s, p)) == j else 0
+                t0 = start_slot_job.get((s, p, j), 0.0)
+                t1 = finish_slot_job.get((s, p, j), 0.0)
+                lhs = t1 - t0
+                rhs = pJobDuration.get(j, 0.0) * x_val
+                if lhs + 1e-6 < rhs:
+                    verification_results['c17_duration_if_not_assigned']['passed'] = False
+                    verification_results['c17_duration_if_not_assigned']['errors'].append(
+                        f"(s={s},p={p},j={j}): finish-start={lhs:.4f} < duration[{j}]*x={rhs:.4f}"
+                    )
+
+    # —————————————————————————— c18: SlotDuration ——————————————————————————
+    # ∀(s,p): duration_slot[s,p] == sum_j duration_slot_job[s,p,j]
+    verification_results['c18_slot_duration'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            sum_frag = sum(duration_slot_job.get((s, p, j), 0.0) for j in sJobs)
+            dur_slot = duration_slot.get((s, p), 0.0)
+            if abs(dur_slot - sum_frag) > 1e-6:
+                verification_results['c18_slot_duration']['passed'] = False
+                verification_results['c18_slot_duration']['errors'].append(
+                    f"Ranura {s},{p}: vDurationSlot={dur_slot:.4f} ≠ suma_fragmentos={sum_frag:.4f}"
+                )
+
+    # —————————————————————————— c19: PlaneSlotAssignment ——————————————————————————
+    # ∀(s,p,r): v01PlaneInSlot[s,p,r] == sum_{j: planeOfJob[j]=r} x[s,p,j]
+    verification_results['c19_plane_slot_assignment'] = {'passed': True, 'errors': []}
+    plane_in_slot_count = {}
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                cnt = 0
                 for j in sJobs:
-                    x_val = 1 if slot_assignment.get((s, p)) == j else 0
-                    t0 = start_slot_job.get((s, p, j), 0.0)
-                    t1 = finish_slot_job.get((s, p, j), 0.0)
-                    lhs = t1 - t0
-                    rhs = pJobDuration.get(j, 0.0) * x_val
-                    if lhs + 1e-6 < rhs:
-                        verification_results['c17_duration_if_not_assigned']['passed'] = False
-                        verification_results['c17_duration_if_not_assigned']['errors'].append(
-                            f"(s={s},p={p},j={j}): finish-start={lhs:.4f} < duration[{j}]*x={rhs:.4f}"
-                        )
+                    if pPlaneOfJob.get(j) == r and slot_assignment.get((s, p)) == j:
+                        cnt += 1
+                plane_in_slot_count[(s, p, r)] = cnt
+    for (s, p, r), cnt in plane_in_slot_count.items():
+        expected = 1 if cnt == 1 else 0
+        real_val = 1 if any(
+            slot_assignment.get((s, p)) == j and pPlaneOfJob.get(j) == r
+            for j in sJobs
+        ) else 0
+        if expected != real_val:
+            verification_results['c19_plane_slot_assignment']['passed'] = False
+            verification_results['c19_plane_slot_assignment']['errors'].append(
+                f"(s={s},p={p},r={r}): conteo={cnt}, pero v01PlaneInSlot reconstruido={real_val}"
+            )
 
-        # —————————————————————————— c18: SlotDuration ——————————————————————————
-        # ∀(s,p): duration_slot[s,p] == sum_j duration_slot_job[s,p,j]
-        verification_results['c18_slot_duration'] = {'passed': True, 'errors': []}
-        for s in sSlots:
-            for p in sPositions:
-                sum_frag = sum(duration_slot_job.get((s, p, j), 0.0) for j in sJobs)
-                dur_slot = duration_slot.get((s, p), 0.0)
-                if abs(dur_slot - sum_frag) > 1e-6:
-                    verification_results['c18_slot_duration']['passed'] = False
-                    verification_results['c18_slot_duration']['errors'].append(
-                        f"Ranura {s},{p}: vDurationSlot={dur_slot:.4f} ≠ suma_fragmentos={sum_frag:.4f}"
+    # —————————————————————————— c20: PlaneInPosition ——————————————————————————
+    # ∀(s,p,r): v01PlaneInPosition[r,p] ≥ v01PlaneInSlot[s,p,r]
+    verification_results['c20_plane_in_position'] = {'passed': True, 'errors': []}
+    plane_in_position = {
+        (r, p): 1 if any(
+            slot_assignment.get((s, p)) == j and pPlaneOfJob.get(j) == r
+            for s in sSlots for j in sJobs
+        ) else 0
+        for r in sPlanes for p in sPositions
+    }
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                in_slot = 1 if any(
+                    slot_assignment.get((s, p)) == j and pPlaneOfJob.get(j) == r
+                    for j in sJobs
+                ) else 0
+                pos_val = plane_in_position.get((r, p), 0)
+                if pos_val < in_slot:
+                    verification_results['c20_plane_in_position']['passed'] = False
+                    verification_results['c20_plane_in_position']['errors'].append(
+                        f"(s={s},p={p},r={r}): v01PlaneInPosition={pos_val} < v01PlaneInSlot={in_slot}"
+                    )
+    # c20b: Si r tiene un trabajo en (s,p), debe estar presente
+    verification_results['c20b_present_if_work'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                pi = plane_in_slot.get((s, p, r), 0)
+                pres = presence.get((s, p, r), 0)
+                if pres < pi - 1e-6:
+                    verification_results['c20b_present_if_work']['passed'] = False
+                    verification_results['c20b_present_if_work']['errors'].append(
+                        f"(s={s},p={p},r={r}): presence={pres} < plane_in_slot={pi}"
                     )
 
-        # —————————————————————————— c19: PlaneSlotAssignment ——————————————————————————
-        # ∀(s,p,r): v01PlaneInSlot[s,p,r] == sum_{j: planeOfJob[j]=r} x[s,p,j]
-        verification_results['c19_plane_slot_assignment'] = {'passed': True, 'errors': []}
-        plane_in_slot_count = {}
-        for s in sSlots:
-            for p in sPositions:
-                for r in sPlanes:
-                    cnt = 0
-                    for j in sJobs:
-                        if pPlaneOfJob.get(j) == r and slot_assignment.get((s, p)) == j:
-                            cnt += 1
-                    plane_in_slot_count[(s, p, r)] = cnt
-        for (s, p, r), cnt in plane_in_slot_count.items():
-            expected = 1 if cnt == 1 else 0
-            real_val = 1 if any(
-                slot_assignment.get((s, p)) == j and pPlaneOfJob.get(j) == r
-                for j in sJobs
-            ) else 0
-            if expected != real_val:
-                verification_results['c19_plane_slot_assignment']['passed'] = False
-                verification_results['c19_plane_slot_assignment']['errors'].append(
-                    f"(s={s},p={p},r={r}): conteo={cnt}, pero v01PlaneInSlot reconstruido={real_val}"
-                )
-
-        # —————————————————————————— c20: PlaneInPosition ——————————————————————————
-        # ∀(s,p,r): v01PlaneInPosition[r,p] ≥ v01PlaneInSlot[s,p,r]
-        verification_results['c20_plane_in_position'] = {'passed': True, 'errors': []}
-        plane_in_position = {
-            (r, p): 1 if any(
-                slot_assignment.get((s, p)) == j and pPlaneOfJob.get(j) == r
-                for s in sSlots for j in sJobs
-            ) else 0
-            for r in sPlanes for p in sPositions
-        }
-        for s in sSlots:
-            for p in sPositions:
-                for r in sPlanes:
-                    in_slot = 1 if any(
-                        slot_assignment.get((s, p)) == j and pPlaneOfJob.get(j) == r
-                        for j in sJobs
-                    ) else 0
-                    pos_val = plane_in_position.get((r, p), 0)
-                    if pos_val < in_slot:
-                        verification_results['c20_plane_in_position']['passed'] = False
-                        verification_results['c20_plane_in_position']['errors'].append(
-                            f"(s={s},p={p},r={r}): v01PlaneInPosition={pos_val} < v01PlaneInSlot={in_slot}"
-                        )
-
-        # —————————————————————————— c21: ClientInPosition ——————————————————————————
-        # ∀(c,p): vClientPosition[c,p] ≥ sum_{r} v01PlaneInPosition[r,p]*pAirplaneOfClient[c,r]
-        verification_results['c21_client_in_position'] = {'passed': True, 'errors': []}
-        # Sin datos de clientes, asumimos que se cumple.
-
-        # —————————————————————————— c22 & c23: BetaDefinition1 y BetaDefinition2 ——————————————————————————
-        # c22: ∀(s,s2,p,p2): M·BetaS[s,s2,p,p2] + start_slot[s,p] ≥ start_slot[s2,p2]
-        # c23: ∀(s,s2,p,p2): M·BetaF[s,s2,p,p2] + start_slot[s2,p2] ≥ finish_slot[s,p]
-        verification_results['c22_beta_definition1'] = {'passed': True, 'errors': []}
-        verification_results['c23_beta_definition2'] = {'passed': True, 'errors': []}
-        M = pHorizon
-        for (s, s2, p, p2) in sPosPosSlotSlot:
-            st_sp = start_slot.get((s, p), 0.0)
-            st_s2p2 = start_slot.get((s2, p2), 0.0)
-            fn_sp = finish_slot.get((s, p), 0.0)
-            beta_s = 1 if st_sp + 1e-6 < st_s2p2 else 0
-            lhs1 = M * beta_s + st_sp
-            if lhs1 + 1e-6 < st_s2p2:
-                verification_results['c22_beta_definition1']['passed'] = False
-                verification_results['c22_beta_definition1']['errors'].append(
-                    f"(s={s},s2={s2},p={p},p2={p2}): M·βS+start[{s},{p}]={lhs1:.4f} < start[{s2},{p2}]={st_s2p2:.4f}"
-                )
-            beta_f = 1 if st_s2p2 + 1e-6 < fn_sp else 0
-            lhs2 = M * beta_f + st_s2p2
-            if lhs2 + 1e-6 < fn_sp:
-                verification_results['c23_beta_definition2']['passed'] = False
-                verification_results['c23_beta_definition2']['errors'].append(
-                    f"(s={s},s2={s2},p={p},p2={p2}): M·βF+start[{s2},{p2}]={lhs2:.4f} < finish[{s},{p}]={fn_sp:.4f}"
-                )
-
-        # —————————————————————————— c24: InterferenceExists ——————————————————————————
-        # ∀(s,s2,p,p2): 1 + α[s,s2,p,p2] ≥ βS[s,s2,p,p2] + βF[s,s2,p,p2]
-        verification_results['c24_interference_exists'] = {'passed': True, 'errors': []}
-        for (s, s2, p, p2) in sPosPosSlotSlot:
-            st_sp = start_slot.get((s, p), 0.0)
-            st_s2p2 = start_slot.get((s2, p2), 0.0)
-            fn_sp = finish_slot.get((s, p), 0.0)
-            fn_s2p2 = finish_slot.get((s2, p2), 0.0)
-            beta_s = 1 if st_sp + 1e-6 < st_s2p2 else 0
-            beta_f = 1 if st_s2p2 + 1e-6 < fn_sp else 0
-            solapan = not (fn_sp <= st_s2p2 + 1e-6 or fn_s2p2 <= st_sp + 1e-6)
-            alpha_val = 1 if solapan else 0
-            lhs = 1 + alpha_val
-            rhs = beta_s + beta_f
-            if lhs < rhs - 1e-6:
-                verification_results['c24_interference_exists']['passed'] = False
-                verification_results['c24_interference_exists']['errors'].append(
-                    f"(s={s},s2={s2},p={p},p2={p2}): 1+α={lhs:.4f} < βS+βF={rhs:.4f}"
-                )
-            if solapan and (s, s2, p, p2) not in interference_list and (s2, s, p2, p) not in interference_list:
-                verification_results['c24_interference_exists']['passed'] = False
-                verification_results['c24_interference_exists']['errors'].append(
-                    f"Solapamiento real entre ({s},{s2},{p},{p2}) no marcado en interference_list"
-                )
-
-        # —————————————————————————— c25: SwitchingPlanes ——————————————————————————
-        # ∀(p,s,s2,r,r2): 1 + v01SwitchPlanes[s,p] ≥ v01PlaneInSlot[s,p,r] + v01PlaneInSlot[s2,p,r2]
-        verification_results['c25_switching_planes'] = {'passed': True, 'errors': []}
-        for (p, s, s2, r, r2) in sSwitchPlanes:
-            in1 = 1 if slot_assignment.get((s, p)) in sJobs and pPlaneOfJob.get(slot_assignment[(s, p)]) == r else 0
-            in2 = 1 if slot_assignment.get((s2, p)) in sJobs and pPlaneOfJob.get(slot_assignment[(s2, p)]) == r2 else 0
-            switch_val = 1 if (in1 + in2) > 1 else 0
-            lhs = 1 + switch_val
-            rhs = in1 + in2
-            if lhs < rhs - 1e-6:
-                verification_results['c25_switching_planes']['passed'] = False
-                verification_results['c25_switching_planes']['errors'].append(
-                    f"(p={p},s={s},s2={s2},r={r},r2={r2}): 1+vSwitch={lhs:.4f} < in1+in2={rhs:.4f}"
-                )
-
-        # —————————————————————————— c26: NoOverlapSlots ——————————————————————————
-        # ∀(s,s2,p,p2,j) con (s,p)≠(s2,p2): 1 + βS + βF ≥ x[s,p,j] + x[s2,p2,j]
-        verification_results['c26_no_overlap_slots'] = {'passed': True, 'errors': []}
-        for j in sJobs:
-            ubic = [(s, p) for (s, p), job in slot_assignment.items() if job == j]
-            for i in range(len(ubic)):
-                s1, p1 = ubic[i]
-                t1_0 = start_slot_job.get((s1, p1, j), 0.0)
-                t1_1 = finish_slot_job.get((s1, p1, j), 0.0)
-                for k in range(i + 1, len(ubic)):
-                    s2, p2 = ubic[k]
-                    t2_0 = start_slot_job.get((s2, p2, j), 0.0)
-                    t2_1 = finish_slot_job.get((s2, p2, j), 0.0)
-                    if s1 == s2 and p1 == p2:
-                        continue
-                    beta_s = 1 if t1_0 + 1e-6 < t2_0 else 0
-                    beta_f = 1 if t2_0 + 1e-6 < t1_1 else 0
-                    lhs = 1 + beta_s + beta_f
-                    rhs = 2
-                    if lhs < rhs - 1e-6:
-                        verification_results['c26_no_overlap_slots']['passed'] = False
-                        verification_results['c26_no_overlap_slots']['errors'].append(
-                            f"NoOverlapSlots j={j}: ({s1},{p1},{t1_0:.4f}-{t1_1:.4f}) vs ({s2},{p2},{t2_0:.4f}-{t2_1:.4f}), 1+βS+βF={lhs:.4f} < 2"
-                        )
-
-        # —————————————————————————————— Comprobaciones adicionales ——————————————————————————————
-        #   within_horizon: ∀(s,p): finish_slot[s,p] ≤ pHorizon
-        verification_results['within_horizon'] = {'passed': True, 'errors': []}
-        for (s, p), end_time in finish_slot.items():
-            if end_time > pHorizon + 1e-6:
-                verification_results['within_horizon']['passed'] = False
-                verification_results['within_horizon']['errors'].append(
-                    f"Ranura ({s},{p}) termina en {end_time:.4f} > Horizon={pHorizon:.4f}"
-                )
-        #   plane_single_position: un avión no puede estar en dos posiciones solapadas
-        verification_results['plane_single_position'] = {'passed': True, 'errors': []}
+    # c20c: presencia = slots + idle
+    verification_results['c20c_present_exactly_one'] = {'passed': True, 'errors': []}
+    for s in sSlots:
         for r in sPlanes:
-            fragments = [(s, p, start_slot.get((s, p), 0.0), finish_slot.get((s, p), 0.0))
-                         for (s, p), j in slot_assignment.items() if pPlaneOfJob.get(j) == r]
-            for i in range(len(fragments)):
-                s1, p1, t1_0, t1_1 = fragments[i]
-                for jdx in range(i + 1, len(fragments)):
-                    s2, p2, t2_0, t2_1 = fragments[jdx]
-                    if p1 != p2:
-                        solap = not (t1_1 <= t2_0 + 1e-6 or t2_1 <= t1_0 + 1e-6)
-                        if solap:
-                            verification_results['plane_single_position']['passed'] = False
-                            verification_results['plane_single_position']['errors'].append(
-                                f"Avión {r} en posiciones distintas solapadas: {p1}({t1_0:.4f}-{t1_1:.4f}) vs {p2}({t2_0:.4f}-{t2_1:.4f})"
-                            )
+            sum_pres = sum(presence.get((s, p, r), 0) for p in sPositions)
+            sum_slots = sum(plane_in_slot.get((s, p, r), 0) for p in sPositions)
+            sum_idle = sum(idle.get((s, p, r), 0) for p in sPositions)
+            if abs(sum_pres - (sum_slots + sum_idle)) > 1e-6:
+                verification_results['c20c_present_exactly_one']['passed'] = False
+                verification_results['c20c_present_exactly_one']['errors'].append(
+                    f"(s={s},r={r}): pres={sum_pres} != slots+idle={sum_slots + sum_idle}"
+                )
+
+    # c20d: un avión por posición
+    verification_results['c20d_single_plane_per_position'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            cnt = sum(presence.get((s, p, r), 0) for r in sPlanes)
+            if cnt - 1 > 1e-6:
+                verification_results['c20d_single_plane_per_position']['passed'] = False
+                verification_results['c20d_single_plane_per_position']['errors'].append(
+                    f"(s={s},p={p}): presencia total={cnt} > 1"
+                )
+
+    # c20e: no salto adelante sin switch
+    verification_results['c20e_no_jump_forward'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        prev_s = data.get('prev_slot', {}).get(s)
+        if prev_s is None:
+            continue
+        for p in sPositions:
+            for r in sPlanes:
+                pres_prev = presence.get((prev_s, p, r), 0)
+                pres_curr = presence.get((s, p, r), 0)
+                sw = switch_planes.get((prev_s, p), 0)
+                if pres_prev - pres_curr - sw > 1e-6:
+                    verification_results['c20e_no_jump_forward']['passed'] = False
+                    verification_results['c20e_no_jump_forward']['errors'].append(
+                        f"(s_prev={prev_s},s={s},p={p},r={r}): pres_prev-pres={pres_prev - pres_curr} > switch={sw}"
+                    )
+
+    # c20f: no salto backward sin switch
+    verification_results['c20f_no_jump_backward'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        prev_s = data.get('prev_slot', {}).get(s)
+        if prev_s is None:
+            continue
+        for p in sPositions:
+            for r in sPlanes:
+                pres_prev = presence.get((prev_s, p, r), 0)
+                pres_curr = presence.get((s, p, r), 0)
+                sw = switch_planes.get((prev_s, p), 0)
+                if pres_curr - pres_prev - sw > 1e-6:
+                    verification_results['c20f_no_jump_backward']['passed'] = False
+                    verification_results['c20f_no_jump_backward']['errors'].append(
+                        f"(s_prev={prev_s},s={s},p={p},r={r}): pres-pres_prev={pres_curr - pres_prev} > switch={sw}"
+                    )
+
+    # idle_def1: idle >= presence - slots
+    verification_results['idle_def1'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                pres = presence.get((s, p, r), 0)
+                pi = plane_in_slot.get((s, p, r), 0)
+                idl = idle.get((s, p, r), 0)
+                if idl + 1e-6 < pres - pi:
+                    verification_results['idle_def1']['passed'] = False
+                    verification_results['idle_def1']['errors'].append(
+                        f"(s={s},p={p},r={r}): idle={idl} < pres-pi={pres - pi}"
+                    )
+
+    # idle_def2: idle <= presence
+    verification_results['idle_def2'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                idl = idle.get((s, p, r), 0)
+                pres = presence.get((s, p, r), 0)
+                if idl - pres > 1e-6:
+                    verification_results['idle_def2']['passed'] = False
+                    verification_results['idle_def2']['errors'].append(
+                        f"(s={s},p={p},r={r}): idle={idl} > presence={pres}"
+                    )
+
+    # link_start_presence
+    verification_results['link_start_presence'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                pres = presence.get((s, p, r), 0)
+                sp = start_presence.get((s, p, r), 0.0)
+                ss = start_slot.get((s, p), 0.0)
+                if sp - (ss + M * (1 - pres)) > 1e-6:
+                    verification_results['link_start_presence']['passed'] = False
+                    verification_results['link_start_presence']['errors'].append(
+                        f"(s={s},p={p},r={r}): sp={sp} > ss+M(1-pres)={ss + M * (1 - pres)}"
+                    )
+
+    # link_finish_presence_lb
+    verification_results['link_finish_presence_lb'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                pres = presence.get((s, p, r), 0)
+                fp = finish_presence.get((s, p, r), 0.0)
+                fs = finish_slot.get((s, p), 0.0)
+                if (fs - M * (1 - pres)) - fp > 1e-6:
+                    verification_results['link_finish_presence_lb']['passed'] = False
+                    verification_results['link_finish_presence_lb']['errors'].append(
+                        f"(s={s},p={p},r={r}): fs-M(1-pres)={fs - M * (1 - pres)} > fp={fp}"
+                    )
+
+    # link_finish_presence_ub
+    verification_results['link_finish_presence_ub'] = {'passed': True, 'errors': []}
+    for s in sSlots:
+        for p in sPositions:
+            for r in sPlanes:
+                pres = presence.get((s, p, r), 0)
+                fp = finish_presence.get((s, p, r), 0.0)
+                fs = finish_slot.get((s, p), 0.0)
+                if fp - (fs + M * (1 - pres)) > 1e-6:
+                    verification_results['link_finish_presence_ub']['passed'] = False
+                    verification_results['link_finish_presence_ub']['errors'].append(
+                        f"(s={s},p={p},r={r}): fp={fp} > fs+M(1-pres)={fs + M * (1 - pres)}"
+                    )
+
+    # —————————————————————————— c21: ClientInPosition ——————————————————————————
+    # ∀(c,p): vClientPosition[c,p] ≥ sum_{r} v01PlaneInPosition[r,p]*pAirplaneOfClient[c,r]
+    verification_results['c21_client_in_position'] = {'passed': True, 'errors': []}
+    # Sin datos de clientes, asumimos que se cumple.
+
+    # —————————————————————————— c22 & c23: BetaDefinition1 y BetaDefinition2 ——————————————————————————
+    # c22: ∀(s,s2,p,p2): M·BetaS[s,s2,p,p2] + start_slot[s,p] ≥ start_slot[s2,p2]
+    # c23: ∀(s,s2,p,p2): M·BetaF[s,s2,p,p2] + start_slot[s2,p2] ≥ finish_slot[s,p]
+    verification_results['c22_beta_definition1'] = {'passed': True, 'errors': []}
+    verification_results['c23_beta_definition2'] = {'passed': True, 'errors': []}
+    M = pHorizon
+    for (s, s2, p, p2) in sPosPosSlotSlot:
+        st_sp = start_slot.get((s, p), 0.0)
+        st_s2p2 = start_slot.get((s2, p2), 0.0)
+        fn_sp = finish_slot.get((s, p), 0.0)
+        beta_s = 1 if st_sp + 1e-6 < st_s2p2 else 0
+        lhs1 = M * beta_s + st_sp
+        if lhs1 + 1e-6 < st_s2p2:
+            verification_results['c22_beta_definition1']['passed'] = False
+            verification_results['c22_beta_definition1']['errors'].append(
+                f"(s={s},s2={s2},p={p},p2={p2}): M·βS+start[{s},{p}]={lhs1:.4f} < start[{s2},{p2}]={st_s2p2:.4f}"
+            )
+        beta_f = 1 if st_s2p2 + 1e-6 < fn_sp else 0
+        lhs2 = M * beta_f + st_s2p2
+        if lhs2 + 1e-6 < fn_sp:
+            verification_results['c23_beta_definition2']['passed'] = False
+            verification_results['c23_beta_definition2']['errors'].append(
+                f"(s={s},s2={s2},p={p},p2={p2}): M·βF+start[{s2},{p2}]={lhs2:.4f} < finish[{s},{p}]={fn_sp:.4f}"
+            )
+
+    # —————————————————————————— c24: InterferenceExists ——————————————————————————
+    # ∀(s,s2,p,p2): 1 + α[s,s2,p,p2] ≥ βS[s,s2,p,p2] + βF[s,s2,p,p2]
+    verification_results['c24_interference_exists'] = {'passed': True, 'errors': []}
+    for (s, s2, p, p2) in sPosPosSlotSlot:
+        st_sp = start_slot.get((s, p), 0.0)
+        st_s2p2 = start_slot.get((s2, p2), 0.0)
+        fn_sp = finish_slot.get((s, p), 0.0)
+        fn_s2p2 = finish_slot.get((s2, p2), 0.0)
+        beta_s = 1 if st_sp + 1e-6 < st_s2p2 else 0
+        beta_f = 1 if st_s2p2 + 1e-6 < fn_sp else 0
+        solapan = not (fn_sp <= st_s2p2 + 1e-6 or fn_s2p2 <= st_sp + 1e-6)
+        alpha_val = 1 if solapan else 0
+        lhs = 1 + alpha_val
+        rhs = beta_s + beta_f
+        if lhs < rhs - 1e-6:
+            verification_results['c24_interference_exists']['passed'] = False
+            verification_results['c24_interference_exists']['errors'].append(
+                f"(s={s},s2={s2},p={p},p2={p2}): 1+α={lhs:.4f} < βS+βF={rhs:.4f}"
+            )
+        if solapan and (s, s2, p, p2) not in interference_list and (s2, s, p2,
+                                                                    p) not in interference_list:
+            verification_results['c24_interference_exists']['passed'] = False
+            verification_results['c24_interference_exists']['errors'].append(
+                f"Solapamiento real entre ({s},{s2},{p},{p2}) no marcado en interference_list"
+            )
+
+    # —————————————————————————— c25: SwitchingPlanes ——————————————————————————
+    # ∀(p,s,s2,r,r2): 1 + v01SwitchPlanes[s,p] ≥ v01PlaneInSlot[s,p,r] + v01PlaneInSlot[s2,p,r2]
+    verification_results['c25_switching_planes'] = {'passed': True, 'errors': []}
+    for (p, s, s2, r, r2) in sSwitchPlanes:
+        in1 = 1 if slot_assignment.get((s, p)) in sJobs and pPlaneOfJob.get(
+            slot_assignment[(s, p)]) == r else 0
+        in2 = 1 if slot_assignment.get((s2, p)) in sJobs and pPlaneOfJob.get(
+            slot_assignment[(s2, p)]) == r2 else 0
+        switch_val = 1 if (in1 + in2) > 1 else 0
+        lhs = 1 + switch_val
+        rhs = in1 + in2
+        if lhs < rhs - 1e-6:
+            verification_results['c25_switching_planes']['passed'] = False
+            verification_results['c25_switching_planes']['errors'].append(
+                f"(p={p},s={s},s2={s2},r={r},r2={r2}): 1+vSwitch={lhs:.4f} < in1+in2={rhs:.4f}"
+            )
+
+    # —————————————————————————— c26: NoOverlapSlots ——————————————————————————
+    # ∀(s,s2,p,p2,j) con (s,p)≠(s2,p2): 1 + βS + βF ≥ x[s,p,j] + x[s2,p2,j]
+    verification_results['c26_no_overlap_slots'] = {'passed': True, 'errors': []}
+    for j in sJobs:
+        ubic = [(s, p) for (s, p), job in slot_assignment.items() if job == j]
+        for i in range(len(ubic)):
+            s1, p1 = ubic[i]
+            t1_0 = start_slot_job.get((s1, p1, j), 0.0)
+            t1_1 = finish_slot_job.get((s1, p1, j), 0.0)
+            for k in range(i + 1, len(ubic)):
+                s2, p2 = ubic[k]
+                t2_0 = start_slot_job.get((s2, p2, j), 0.0)
+                t2_1 = finish_slot_job.get((s2, p2, j), 0.0)
+                if s1 == s2 and p1 == p2:
+                    continue
+                beta_s = 1 if t1_0 + 1e-6 < t2_0 else 0
+                beta_f = 1 if t2_0 + 1e-6 < t1_1 else 0
+                lhs = 1 + beta_s + beta_f
+                rhs = 2
+                if lhs < rhs - 1e-6:
+                    verification_results['c26_no_overlap_slots']['passed'] = False
+                    verification_results['c26_no_overlap_slots']['errors'].append(
+                        f"NoOverlapSlots j={j}: ({s1},{p1},{t1_0:.4f}-{t1_1:.4f}) vs ({s2},{p2},{t2_0:.4f}-{t2_1:.4f}), 1+βS+βF={lhs:.4f} < 2"
+                    )
+
+
+
+    # —————————————————————————————— Comprobaciones adicionales ——————————————————————————————
+    #   within_horizon: ∀(s,p): finish_slot[s,p] ≤ pHorizon
+    verification_results['within_horizon'] = {'passed': True, 'errors': []}
+    for (s, p), end_time in finish_slot.items():
+        if end_time > pHorizon + 1e-6:
+            verification_results['within_horizon']['passed'] = False
+            verification_results['within_horizon']['errors'].append(
+                f"Ranura ({s},{p}) termina en {end_time:.4f} > Horizon={pHorizon:.4f}"
+            )
+    #   plane_single_position: un avión no puede estar en dos posiciones solapadas
+    verification_results['plane_single_position'] = {'passed': True, 'errors': []}
+    for r in sPlanes:
+        fragments = [(s, p, start_slot.get((s, p), 0.0), finish_slot.get((s, p), 0.0))
+                     for (s, p), j in slot_assignment.items() if pPlaneOfJob.get(j) == r]
+        for i in range(len(fragments)):
+            s1, p1, t1_0, t1_1 = fragments[i]
+            for jdx in range(i + 1, len(fragments)):
+                s2, p2, t2_0, t2_1 = fragments[jdx]
+                if p1 != p2:
+                    solap = not (t1_1 <= t2_0 + 1e-6 or t2_1 <= t1_0 + 1e-6)
+                    if solap:
+                        verification_results['plane_single_position']['passed'] = False
+                        verification_results['plane_single_position']['errors'].append(
+                            f"Avión {r} en posiciones distintas solapadas: {p1}({t1_0:.4f}-{t1_1:.4f}) vs {p2}({t2_0:.4f}-{t2_1:.4f})"
+                        )
 
         all_passed = all(entry['passed'] for entry in verification_results.values())
         summary = {
@@ -1505,11 +1680,11 @@ if __name__ == "__main__":
     # reading data from Excel
     # data = read_excel("input_data.xlsx", "case_1_plane")
     # data = read_excel("input_data.xlsx", "case_2_planes")
-    # data = read_excel("input_data.xlsx", "case_3_planes")
+    data = read_excel("input_data.xlsx", "case_3_planes")
     # data = read_excel("input_data.xlsx", "case_3b_planes")
     # data = read_excel("input_data.xlsx", "case_4_planes")
     # data = read_excel("input_data.xlsx", "case_5_planes")
-    data = read_excel("input_data.xlsx", "case_2")
+    # data = read_excel("input_data.xlsx", "case_6_planes")
 
 
     # Quick diagnose for loaded data
@@ -1539,7 +1714,7 @@ if __name__ == "__main__":
 
     # Configuración de límites para la resolución
     opt.options['TimeLimit'] = 1000       # Límite de tiempo en segundos (8 minutos)
-    opt.options['MIPGap'] = 0.15         # Gap relativo (5%)
+    opt.options['MIPGap'] = 0.10         # Gap relativo (5%)
 
     # Configuración para priorizar heurísticas sobre Branch and Bound
     opt.options['Heuristics'] = 1.0      # Máximo esfuerzo en heurísticas (valor entre 0 y 1)
@@ -1665,7 +1840,7 @@ if __name__ == "__main__":
             for j in instance.sJobs:
                 if (j, r) in instance.pLastJobOfPlane and value(instance.pLastJobOfPlane[j, r]) == 1:
                     f_real = instance.vFinishJob[j].value
-                    f_teor = instance.pLateFinishOfPlane[r]
+                    f_teor = instance.pPredictedFinishOfPlane[r]
                     print(f"  Último trabajo: {j}")
                     print(f"    → Fecha real  = {f_real:.1f}")
                     print(f"    → Fecha límite= {value(f_teor):.1f}")
