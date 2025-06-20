@@ -45,7 +45,8 @@ def ap_pyomo_model():
     model.pTaskOfJob = Param(model.sJobs, within=PositiveIntegers)
     model.pNumJobsPerPlane = Param(model.sPlanes, within=NonNegativeIntegers)
     model.prev_slot = Param( model.sSlots,default=None,within=model.sSlots | {None})
-
+    model.pEarlyStartOfPlane = Param(model.sPlanes, within=NonNegativeReals)
+    model.pLateFinishDeadline = Param(model.sPlanes, within=NonNegativeReals)
 
     # Variables
     model.v01JobInSlot = Var(model.sSlots, model.sPositions, model.sJobs, domain=Binary)
@@ -163,7 +164,7 @@ def ap_pyomo_model():
     def fc09_Plane_delay(model,r):
         # para cada (j,r) con L[j,r]=1, impongo H*γ_r ≥ f[j] - T[r]
         return model.vPlaneDelay[r] >= sum(
-            (model.vFinishJob[j] - model.pPredictedFinishOfPlane[r]) * model.pLastJobOfPlane[j, r]
+            (model.vFinishJob[j] - model.pLateFinishDeadline[r]) * model.pLastJobOfPlane[j, r]
             for j in model.sJobs if (j, r) in model.pLastJobOfPlane
         )
 
@@ -224,7 +225,7 @@ def ap_pyomo_model():
     # Rule: Ec. - A job can be assigned to a single slot of a position
     def fc16_SingleSlotPerJob(model, j):
         # ∑∑ x_jsp = 1 ∀j ∈ J
-        return sum(model.v01JobInSlot[s, p, j] 
+        return sum(model.v01JobInSlot[s, p, j]
                for s in model.sSlots for p in model.sPositions) == 1
 
     # Rule: Ec. - If a job is not assigned to a slot of a position, the duration of that job in that slot is zero
@@ -374,7 +375,17 @@ def ap_pyomo_model():
     #             + sum(model.vClientDelay[c] for c in model.sClients) \
     #             + sum(model.vIdle[s,p,r] for r in model.sPlanes for p in model.sPositions for s in model.sSlots)
 
-    def fc27_NoMovements(model):
+    # Rule: c27_EarlyStart – Cada trabajo j de avión r no puede empezar antes de pEarlyStartOfPlane[r]
+    def fc27_EarlyStart(model, j):
+        r = model.pPlaneOfJob[j]
+        return model.vStartJob[j] >= model.pEarlyStartOfPlane[r]
+
+    # Rule: c28_LateFinish – Cada trabajo j de avión r debe acabar antes de pLateFinishDeadline[r]
+    def fc28_LateFinish(model, j):
+        r = model.pPlaneOfJob[j]
+        return model.vFinishJob[j] <= model.pLateFinishDeadline[r]
+
+    def fc29_NoMovements(model):
         return sum(model.v01JobInSlot[s, p, j] for s in model.sSlots for p in model.sPositions for j in model.sJobs) \
                 + sum(model.v01Alpha[i] for i in model.sPosPosSlotSlot) \
                 + sum(model.v01SwitchPlanes[s, p] for p in model.sPositions for s in model.sSlots) \
@@ -490,16 +501,21 @@ def ap_pyomo_model():
     print("Generating c24_InterferenceExists constraint")
     model.c24_InterferenceExists = Constraint(model.sPosPosSlotSlot, rule=fc24_InterferenceExists)
 
-
     print("Generating c25_SwitchingPlanes constraint - Eq. PlaneSwitchInPOsition")
     model.c25_SwitchingPlanes = Constraint(model.sSwitchPlanes, rule=fc25_SwitchingPlanes)
 
     print("Generating c26_NoOverlapSlots constraint")
     model.c26_NoOverlapSlots = Constraint(model.sSlots, model.sSlots, model.sPositions, model.sPositions, model.sJobs, rule=fc26_NoOverlapSlots)
 
+    print("Generating c27_EarlyStart constraint")
+    model.c28_EarlyStart = Constraint(model.sJobs, rule=fc27_EarlyStart)
+
+    print("Generating c28_LateFinish constraint")
+    model.c29_LateFinish = Constraint(model.sJobs, rule=fc28_LateFinish)
+
     #Objective function
     print("Generating objective function")
-    model.ObjFunction = Objective(rule=fc27_NoMovements, sense=minimize)
+    model.ObjFunction = Objective(rule=fc29_NoMovements, sense=minimize)
 
     return model
 
@@ -571,6 +587,23 @@ def read_excel(file_name, sheet_name):
         for r in sPlanes
     ) * 1.2
 
+    df_planes = pd.read_excel(file_name, sheet_name='Planes')
+    df_planes['plane'] = df_planes['plane'].astype(type(sPlanes[0]))
+    # Filtra sólo los aviones que salen en el escenario
+    df_planes = df_planes[df_planes['plane'].isin(sPlanes)]
+
+    # Rellena vacíos: ES = 0, LF = pHorizon → desactiva lógicamente las ventanas
+    df_planes['early_start'] = df_planes['early_start'].fillna(0)
+    df_planes['late_finish'] = df_planes['late_finish'].fillna(pHorizon)
+
+    pEarlyStartOfPlane = df_planes.set_index('plane')['early_start'].to_dict()
+    pLateFinishDeadline = df_planes.set_index('plane')['late_finish'].to_dict()
+
+    # Si algún avión del escenario no estaba en la hoja 'Planes':
+    for r in sPlanes:
+        pEarlyStartOfPlane.setdefault(r, 0)
+        pLateFinishDeadline.setdefault(r, pHorizon)
+
     data = {
         'sJobs': sJobs,
         'sSlots': sSlots,
@@ -586,6 +619,8 @@ def read_excel(file_name, sheet_name):
         'pPredictedFinishOfPlane': max_finish_by_plane,
         'pAirplaneOfClient': dic_pAirplaneOfClient,
         'pLastJobOfPlane': dic_pLastJobOfPlane,
+        'pEarlyStartOfPlane': pEarlyStartOfPlane,
+        'pLateFinishDeadline': pLateFinishDeadline,
     }
     return data
 
@@ -609,6 +644,8 @@ def create_data(data):
         r: sum(1 for j in sJobs if pPlaneOfJob[j] == r)
         for r in sPlanes
     }
+    pEarlyStartOfPlane = data.get('pEarlyStartOfPlane', { r: 0        for r in sPlanes })
+    pLateFinishDeadline = data.get('pLateFinishDeadline', { r: pHorizon for r in sPlanes })
 
     data['pNumJobsPerPlane'] = pNumJobsPerPlane
 
@@ -701,8 +738,8 @@ def create_data(data):
         'pLastJobOfPlane': pLastJobOfPlane,
         'pPredictedFinishOfPlane': pPredictedFinishOfPlane,
         'pNumJobsPerPlane': pNumJobsPerPlane,
-        # 'pLastSlotOfPlane': LastSlotOfPlane,
-        # 'pFirstSlotOfPlane': FirstSlotOfPlane,
+        'pEarlyStartOfPlane': pEarlyStartOfPlane,
+        'pLateFinishDeadline': pLateFinishDeadline,
 
     }
     }
@@ -840,6 +877,15 @@ def generate_report(df_planes, model_instance, movimientos):
 
     # 1) Asegurar columnas start_slot / finish_slot
     df = df_planes.copy()
+    # Homogeneizar columna 'plane' al tipo de sPlanes
+    try:
+        planes_iter = iter(model_instance.sPlanes)
+        first_plane = next(planes_iter)
+        plane_type = type(first_plane)
+        df['plane'] = df['plane'].astype(plane_type)
+    except Exception:
+        pass
+
     if 'start' in df.columns and 'finish' in df.columns:
         df = df.rename(columns={'start': 'start_slot', 'finish': 'finish_slot'})
 
@@ -849,105 +895,117 @@ def generate_report(df_planes, model_instance, movimientos):
 
     # 3) Parámetros auxiliares
     pDate_map = data.get('pDate', {})
-    # Extraemos pJobDuration con value() a ints puros
     pJobDur = {j: int(value(model_instance.pJobDuration[j])) for j in model_instance.sJobs}
 
-    # 4) Conteo de movimientos
+    # 4) Mapeos ES y LF por avión
+    today = pd.to_datetime(date.today())
+    pES_date = {r: today + timedelta(days=int(value(model_instance.pEarlyStartOfPlane[r])))
+                for r in model_instance.sPlanes}
+    pLF_date = {r: today + timedelta(days=int(value(model_instance.pLateFinishDeadline[r])))
+                for r in model_instance.sPlanes}
+
+    # 5) Conteo de movimientos
     mov_count = {}
     for plane, _, _, _ in movimientos:
         mov_count[plane] = mov_count.get(plane, 0) + 1
 
-    # 5) Resumen por avión
-    p2c = {r: c for (c, r), val in model_instance.pAirplaneOfClient.items() if val == 1}
+    # 6) Resumen por avión
+    p2c = {r: c for (c, r), v in model_instance.pAirplaneOfClient.items() if v == 1}
     resumen = []
+    first_start_date = {}
     for avion in sorted(df['plane'].unique()):
         grp = df[df['plane'] == avion].sort_values('start_slot')
         trabajos = grp[grp['type'] == 'work']['job'].tolist()
         posiciones = grp['p'].unique().tolist()
-        inicio = grp['start_slot'].min().date()
+        es_date = pES_date.get(avion, today).date()
+        primer_inicio = grp['start_slot'].min().date()
+        lf_avion = pLF_date.get(avion, today).date()
         fin = grp['finish_slot'].max().date()
-        cliente = p2c.get(int(avion), None)
+        cliente = p2c.get(avion)
+        first_start_date[avion] = primer_inicio
         resumen.append({
             'Avión': avion,
             'Cliente': cliente,
-            'Inicio': inicio,
+            'ES': es_date,
+            'Primer Inicio': primer_inicio,
+            'LF': lf_avion,
             'Fin': fin,
             'Trabajos': ", ".join(trabajos),
             'Posiciones': ", ".join(posiciones),
             'Movimientos': mov_count.get(avion, 0)
         })
     df_res = pd.DataFrame(resumen)
-    print("\n=== RESUMEN POR AVIÓN ===")
-    print(df_res.to_string(index=False))
+    print("\n" + "=" * 150)
+    print("RESUMEN POR AVIÓN")
+    print("=" * 150)
+    print(df_res.to_string(index=False, col_space=15))
 
-    # 6) Detalle de trabajos (excluimos idles)
-    print("\n" + "=" * 80)
+    # 7) Detalle de trabajos
+    print("\n" + "="*170)
     print("DETALLE DE TODOS LOS TRABAJOS")
-    print("=" * 80)
-    df_work = df[df['type'] == 'work'].copy()
+    print("="*170)
+    df_work = df[df['type']=='work'].copy()
+    df_det = df_work[['plane','job','p','start_slot','finish_slot']].copy()
+    df_det['Dur Est.(d)'] = df_det['job'].map(lambda j: pJobDur[j])
+    df_det['Dur Real(d)'] = (df_det['finish_slot']-df_det['start_slot']).dt.total_seconds()/86400.0
+    df_det['Prevista'] = df_det['job'].map(lambda j: date.today()+timedelta(days=pDate_map.get(j,0)+pJobDur[j]))
+    df_det['Real'] = df_det['finish_slot'].dt.date
+    df_det['ES'] = df_det['plane'].apply(lambda r: pES_date.get(r,today).date())
+    df_det['LF'] = df_det['plane'].apply(lambda r: pLF_date.get(r,today).date())
+    # Retraso vs LF
+    df_det['Retraso(d)'] = df_det.apply(lambda r: max((r['Real']-r['LF']).days,0),axis=1)
+    df_det['⚠'] = df_det['Retraso(d)'].apply(lambda d: '❌' if d>0 else '✅')
+    df_det = df_det[['⚠','plane','job','p','ES','Prevista','Real','LF','Dur Est.(d)','Dur Real(d)','Retraso(d)']]
+    df_det.columns=['⚠','Avión','Trabajo','Posición','Fecha ES','Prevista','Real','Fecha LF',
+                    'Dur Est.(d)','Dur Real(d)','Retraso(d)']
+    print(df_det.to_string(index=False, col_space=15))
 
-    df_det = df_work[['plane', 'job', 'p', 'start_slot', 'finish_slot']].copy()
-    df_det['Duración Estimada (días)'] = df_det['job'].map(lambda j: pJobDur[j])
-    df_det['Duración Real (días)'] = (
-                                             df_det['finish_slot'] - df_det['start_slot']
-                                     ).dt.total_seconds() / 86400.0
-
-    df_det['Fecha Prevista'] = df_det['job'].map(
-        lambda j: date.today() + timedelta(days=pDate_map.get(j, 0) + pJobDur[j])
-    )
-    df_det['Fecha Real'] = df_det['finish_slot'].dt.date
-    df_det['Retraso (días)'] = df_det.apply(
-        lambda row: max((row['Fecha Real'] - row['Fecha Prevista']).days, 0), axis=1
-    )
-    df_det['⚠'] = df_det['Retraso (días)'].apply(lambda d: "❌" if d > 0 else "✅")
-
-    df_det = df_det[[
-        '⚠', 'plane', 'job', 'p',
-        'Fecha Prevista', 'Fecha Real',
-        'Duración Estimada (días)', 'Duración Real (días)', 'Retraso (días)'
-    ]]
-    df_det.columns = [
-        '⚠', 'Avión', 'Trabajo', 'Posición',
-        'Fecha Prevista', 'Fecha Real',
-        'Duración Estimada (días)', 'Duración Real (días)', 'Retraso (días)'
-    ]
-    print(df_det.to_string(index=False))
-
-    # 7) Retrasos por cliente
-    print("\n" + "=" * 80)
+    # 8) Retrasos por cliente con estado y fecha real
+    print("="*90)
     print("RETRASOS POR CLIENTE (según el modelo)")
-    print("=" * 80)
+    print("="*90)
     clientes = sorted(model_instance.sClients)
     resumen_c = []
+    c2planes = {c: [r for (c0, r), v in model_instance.pAirplaneOfClient.items() if c0 == c and v == 1]
+                for c in clientes}
     for c in clientes:
-        d = model_instance.vClientDelay[c].value
+        planes_c = c2planes.get(c, [])
+        df_c = df_det[df_det['Avión'].isin(planes_c)]
+        act_max = df_c['Real'].max() if not df_c.empty else None
+        d = int(model_instance.vClientDelay[c].value)
+        if d > 0:
+            estado = '❌ Retraso'
+        else:
+            prev_max = df_c['Prevista'].max() if not df_c.empty else None
+        if act_max and prev_max and act_max > prev_max:
+            estado = '⚠️ Cumple pero pasada Prevista'
+        else:
+            estado = '✅ Cumple Fecha Prevista'
         resumen_c.append({
             'Cliente': c,
-            'Retraso (días)': int(d),
-            'Retraso (semanas)': round(d / 7.0, 2),
-            'Estado': "✅ Cumple" if d == 0 else "❌ Retraso"
+            'Fecha Final Real': act_max,
+            'Retraso(días)': d,
+            'Retraso(sem)': round(d / 7, 2),
+            'Estado': estado
         })
-    print(pd.DataFrame(resumen_c).to_string(index=False))
+    print(pd.DataFrame(resumen_c).to_string(index=False, col_space=15))
 
-    # 8) Resumen ejecutivo
-    print("\n" + "=" * 80)
+    # 9) Resumen ejecutivo
+    print("\n" + "="*90)
     print("RESUMEN EJECUTIVO")
-    print("=" * 80)
+    print("="*90)
     total_t = len(df_det)
-    total_r = df_det['Retraso (días)'].gt(0).sum()
-    total_a = len(df['plane'].unique())
+    total_r = df_det['Retraso(d)'].gt(0).sum()
+    total_a = df['plane'].nunique()
     total_c = len(clientes)
-    c_retraso = [c for c in clientes if next(rc for rc in resumen_c if rc['Cliente'] == c)['Retraso (días)'] > 0]
-
-    print(f"📦 {total_t} trabajos procesados")
-    print(f"✈️  {total_a} aviones, {total_c} clientes")
-    print(f"🔴 {total_r} trabajos con retraso")
-    if c_retraso:
-        print(f"⚠️  Clientes con retrasos: {', '.join(map(str, c_retraso))}")
+    delayed_clients=[r['Cliente'] for r in resumen_c if r['Estado'].startswith('❌')]
+    print(f"📦 {total_t} trabajos, ✈️ {total_a} aviones, {total_c} clientes")
+    print(f"🔴 {total_r} trabajos retrasados")
+    if delayed_clients:
+        print(f"⚠️ Clientes con retrasos: {', '.join(map(str,delayed_clients))}")
     else:
-        print("🟢 Todos los clientes han cumplido sus fechas previstas")
-    print("\nℹ️  El retraso de un cliente solo considera su último trabajo.")
-    print("=" * 80)
+        print("🟢 Sin retrasos por clientes")
+    print("ℹ️ Clientes con estado de cumplimiento detallado arriba.")
 
 def plot_enhanced_solution(df_work, instance, html_path="gantt_idles_movs.html"):
 
@@ -988,8 +1046,10 @@ def plot_enhanced_solution(df_work, instance, html_path="gantt_idles_movs.html")
                 # marcamos ese intervalo como ocupado
                 occupancy[pos_idle].append((fin, ini))
 
-    df_idle = pd.DataFrame(idles, columns=['plane','type','job','p','start','finish'])
-    df_full = pd.concat([df, df_idle], ignore_index=True)
+    df_idle = pd.DataFrame(idles, columns=['plane', 'type', 'job', 'p', 'start', 'finish'])
+    dflist = [df, df_idle]
+    dflist = [df_i for df_i in dflist if not df_i.dropna(how='all').empty]
+    df_full = pd.concat(dflist, ignore_index=True)
 
     # 4) Mapa de colores por avión
     palette   = px.colors.qualitative.Plotly
@@ -1680,9 +1740,9 @@ if __name__ == "__main__":
     # reading data from Excel
     # data = read_excel("input_data.xlsx", "case_1_plane")
     # data = read_excel("input_data.xlsx", "case_2_planes")
-    data = read_excel("input_data.xlsx", "case_3_planes")
+    # data = read_excel("input_data.xlsx", "case_3_planes")
     # data = read_excel("input_data.xlsx", "case_3b_planes")
-    # data = read_excel("input_data.xlsx", "case_4_planes")
+    data = read_excel("input_data.xlsx", "case_4_planes")
     # data = read_excel("input_data.xlsx", "case_5_planes")
     # data = read_excel("input_data.xlsx", "case_6_planes")
 
@@ -1714,7 +1774,7 @@ if __name__ == "__main__":
 
     # Configuración de límites para la resolución
     opt.options['TimeLimit'] = 1000       # Límite de tiempo en segundos (8 minutos)
-    opt.options['MIPGap'] = 0.10         # Gap relativo (5%)
+    opt.options['MIPGap'] = 0.05         # Gap relativo (5%)
 
     # Configuración para priorizar heurísticas sobre Branch and Bound
     opt.options['Heuristics'] = 1.0      # Máximo esfuerzo en heurísticas (valor entre 0 y 1)
@@ -1845,6 +1905,8 @@ if __name__ == "__main__":
                     print(f"    → Fecha real  = {f_real:.1f}")
                     print(f"    → Fecha límite= {value(f_teor):.1f}")
                     print(f"    → Retraso     = {instance.vPlaneDelay[r].value:.1f}")
+                    print(f"    → Late Finish del avión = {value(instance.pLateFinishDeadline[r]):.1f}")
+                    print(f"    → EarlyStart del avión = {value(instance.pEarlyStartOfPlane[r]):.1f}")
 
         generate_report(df_full, instance, movimientos)
     else:
@@ -1918,14 +1980,14 @@ if __name__ == "__main__":
 # for idx in instance.sPosPosSlotSlot:
 #     if value(instance.v01Alpha[idx]) > 0.5:
 #         print("Alpha activada en", idx)
-# 4) Imprimir sPositionsInterference
-print("===== sPositionsInterference =====")
-for (p1, p2) in instance.sPositionsInterference:
-    print(f"Interferencia entre posiciones: {p1} ↔ {p2}")
-print(f"Total: {len(list(instance.sPositionsInterference))} pares\n")
-
-# 5) Imprimir sPosPosSlotSlot
-print("===== sPosPosSlotSlot =====")
-for (p1, p2, s1, s2) in instance.sPosPosSlotSlot:
-    print(f"Pos {p1} en slot {s1} vs Pos {p2} en slot {s2}")
-print(f"Total: {len(list(instance.sPosPosSlotSlot))} combinaciones")
+# # 4) Imprimir sPositionsInterference
+# print("===== sPositionsInterference =====")
+# for (p1, p2) in instance.sPositionsInterference:
+#     print(f"Interferencia entre posiciones: {p1} ↔ {p2}")
+# print(f"Total: {len(list(instance.sPositionsInterference))} pares\n")
+#
+# # 5) Imprimir sPosPosSlotSlot
+# print("===== sPosPosSlotSlot =====")
+# for (p1, p2, s1, s2) in instance.sPosPosSlotSlot:
+#     print(f"Pos {p1} en slot {s1} vs Pos {p2} en slot {s2}")
+# print(f"Total: {len(list(instance.sPosPosSlotSlot))} combinaciones")
