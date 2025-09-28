@@ -1,22 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-model_func1_sh.py — continuo + fc29 + bloqueo de calle + precedencias por avión + ventanas por avión + delay avión/cliente
-- Tiempo continuo: t_start[j], t_end[j] con duración D[j].
-- Asignación única a posición: y[j,p].
-- No-solape por posición (disyunción linealizada).
-- BLOQUEO de calle (entrada/salida) con SEP_IN/OUT = 1e-3 días (≈86s) al estilo cpaste.py.
-- Precedencias por avión (según 'task'): t_start[j2] ≥ t_end[j1].
-- Ventanas por avión (EarlyStartOfPlane / LateFinishDeadline): se aplican a todos sus trabajos.
-- Retraso por avión (último trabajo por avión) y por cliente (suma de retrasos de sus aviones).
-- Política cliente→posición "soft" (z[c,p]) como antes.
-- Objetivo fc29-like manteniendo métricas (vPresence, v01SwitchPlanes, v01JobInSlot, v01Alpha, vIdle) + ClientDelay via PlaneDelay.
-- Gantt con posiciones ordenadas (position1..position5).
-- REPORT ENRIQUECIDO (resumen por avión + detalle por trabajo + CSVs adicionales).
-
-Requisitos:
-  pip install pyomo pandas numpy plotly openpyxl
-  (y Gurobi instalado/licenciado)
-"""
 
 import os, math
 from datetime import date, timedelta
@@ -50,7 +31,6 @@ SEP_OUT = 0.08
 # -----------------------
 # CONFIG
 # -----------------------
-PLANNING_START = "2024-11-17"  # None => hoy; o "YYYY-MM-DD"
 
 CLIENT_POS_POLICY = "hard"
 W_CLIENT_POS = 5000000.0
@@ -66,6 +46,12 @@ W_IDLE = 1.0
 
 # Solver
 GAP = 0.05
+
+# === PARÁMETROS DE ENTRADA ===
+CASE_XLSX = "case_26.xlsx"   # <-- cámbialo aquí
+CASE_SHEET = "case_26"           # <-- una sola hoja con todo (min: job, plane, client, position, duration, es, lf)
+PLANNING_START = "2024-11-17" # origen calendario; puede ser None o "YYYY-MM-DD"
+
 
 # (global para report/validación)
 data = {}
@@ -86,6 +72,9 @@ from datetime import datetime, date
 import pandas as pd
 
 
+import pandas as pd
+from datetime import datetime, date
+
 def _robust_base_date(ps):
     """Convierte planning_start a Timestamp robustamente."""
     if ps is None:
@@ -105,197 +94,326 @@ def _robust_base_date(ps):
         s = str(int(v)) if float(v).is_integer() else None
         if s and len(s) == 8:
             return pd.to_datetime(s, format="%Y%m%d").normalize()
-        # No intentamos interpretar serial Excel para planning_start; usa cadena/fecha.
         return pd.Timestamp(date.today()).normalize()
     return pd.Timestamp(date.today()).normalize()
 
-
 def _to_days_from_base(val, base_date: pd.Timestamp) -> float:
     """
-    Convierte un valor a DIAS desde base_date:
-      - número → días (si está en 20000..80000 se interpreta como serial Excel → fecha → días)
+    Convierte un valor a DÍAS desde base_date:
+      - numérico → días (si 20000..80000 => serial Excel → fecha → días)
       - string/fecha → se parsea a fecha y se pasa a días
     """
     if pd.isna(val):
         return 0.0
-    # numérico
     try:
         v = float(val)
         if 20000 <= v <= 80000:  # serial Excel
             base_excel = pd.Timestamp("1899-12-30")
-            d_int = int(v);
+            d_int = int(v)
             frac = v - d_int
             dt = base_excel + pd.to_timedelta(d_int, unit="D") + pd.to_timedelta(frac * 86400, unit="s")
             return (dt - base_date).total_seconds() / 86400.0
         return v
     except Exception:
         pass
-    # texto/fecha
     dt = pd.to_datetime(val, errors="coerce", dayfirst=True)
     if pd.isna(dt):
         return 0.0
     return (pd.Timestamp(dt).normalize() - base_date).total_seconds() / 86400.0
 
 
+
 # ---------------------- Función principal pedida ----------------------
 
-def read_input(xlsx_path: str, case_sheet: str, planning_start=PLANNING_START, planes_sheet: str = "Planes2"):
-    print(f"Leyendo Excel: {os.path.basename(xlsx_path)} / {case_sheet}")
+# def read_input(xlsx_path: str, case_sheet: str, planning_start=PLANNING_START, planes_sheet: str = "Planes2"):
+#     print(f"Leyendo Excel: {os.path.basename(xlsx_path)} / {case_sheet}")
+#     base_date = _robust_base_date(planning_start)
+#     print(f"BASE_DATE: {base_date.date()}  (origen calendario)")
+#
+#     # ---- Caso (jobs) ----
+#     df_case = pd.read_excel(xlsx_path, sheet_name=case_sheet)
+#     rename_map = {
+#         'plane': 'plane', 'task': 'task', 'job': 'job', 'date': 'date',
+#         'duration': 'duration', 'movable': 'movable', 'flexible': 'flexible', 'client': 'client'
+#     }
+#     df_case = df_case.rename(columns={c: rename_map.get(c, c) for c in df_case.columns})
+#
+#     if 'plane' not in df_case or 'duration' not in df_case:
+#         raise ValueError("La hoja del caso debe contener columnas 'plane' y 'duration'.")
+#     df_case = df_case[pd.to_numeric(df_case['plane'], errors='coerce').notna()]
+#     df_case = df_case[pd.to_numeric(df_case['duration'], errors='coerce').notna()]
+#     df_case['plane'] = df_case['plane'].astype(int)
+#     df_case['duration'] = pd.to_numeric(df_case['duration'], errors='coerce').astype(float)
+#     if 'client' not in df_case: df_case['client'] = 'NA'
+#     if 'task' not in df_case:   df_case['task'] = 1
+#     df_case['task'] = pd.to_numeric(df_case['task'], errors='coerce').fillna(1).astype(int)
+#
+#     # ---- Planes (SIN fallback) ----
+#     xls = pd.ExcelFile(xlsx_path)
+#     if planes_sheet not in xls.sheet_names:
+#         raise ValueError(f"La hoja '{planes_sheet}' no existe en el Excel.")
+#     df_planes = pd.read_excel(xlsx_path, sheet_name=planes_sheet)
+#     if 'plane' not in df_planes.columns:
+#         raise ValueError(f"La hoja '{planes_sheet}' debe tener columna 'plane'.")
+#
+#     # early_start y late_finish por avión → DIAS desde BASE_DATE
+#     early_start_plane = {}
+#     late_finish_plane = {}
+#     if 'early_start' in df_planes.columns:
+#         tmp = df_planes[['plane', 'early_start']].dropna().copy()
+#         tmp['plane'] = tmp['plane'].astype(int)
+#         tmp['ES_days'] = tmp['early_start'].apply(lambda v: _to_days_from_base(v, base_date))
+#         early_start_plane = dict(zip(tmp['plane'], tmp['ES_days']))
+#     if 'late_finish' in df_planes.columns:
+#         tmp = df_planes[['plane', 'late_finish']].dropna().copy()
+#         tmp['plane'] = tmp['plane'].astype(int)
+#         tmp['LF_days'] = tmp['late_finish'].apply(lambda v: _to_days_from_base(v, base_date))
+#         late_finish_plane = dict(zip(tmp['plane'], tmp['LF_days']))
+#
+#     # ---- Jobs (ids, orden) ----
+#     if 'job' not in df_case.columns or df_case['job'].isna().any():
+#         df_case['job'] = df_case.apply(lambda r: f"{int(r.plane)}-{int(r.task)}", axis=1)
+#     df_case = df_case.sort_values(['plane', 'task']).reset_index(drop=True)
+#
+#     jobs = [str(r.job) for _, r in df_case.iterrows()]
+#     planes = [int(r.plane) for _, r in df_case.iterrows()]
+#     tasks = {jobs[i]: int(df_case.loc[i, 'task']) for i in range(len(jobs))}
+#     dur = {jobs[i]: float(df_case.loc[i, 'duration']) for i in range(len(jobs))}
+#     cli = {jobs[i]: str(df_case.loc[i, 'client']) for i in range(len(jobs))}
+#     plane_of = {jobs[i]: planes[i] for i in range(len(jobs))}
+#     clients = sorted(set(cli.values()))
+#     planes_set = sorted(set(planes))
+#
+#     # ---- ES por job ----
+#     # Opción A (la que tenías activa): ES_j = early_start del avión
+#     ES_plane_days = {r: float(early_start_plane.get(r, 0.0)) for r in planes_set}
+#     es = {j: ES_plane_days[plane_of[j]] for j in jobs}
+#
+#     # Opción B (si quieres que ES venga de case_261.date): DESCOMENTA estas 2 líneas y comenta la opción A
+#     # if 'date' in df_case.columns:
+#     #     es = {jobs[i]: float(_to_days_from_base(df_case.loc[i,'date'], base_date)) for i in range(len(jobs))}
+#
+#     # ---- LF por job (prioridad: case.late > planes.late_finish > derivado) ----
+#     lf_row = None
+#     if 'late' in df_case.columns:
+#         lf_row = df_case['late'].apply(lambda v: _to_days_from_base(v, base_date)).tolist()
+#
+#     big_pad = (max(dur.values()) if len(dur) > 0 else 1.0) * 10 + 100.0
+#     lf = {}
+#     for i, j in enumerate(jobs):
+#         r = plane_of[j]
+#         if lf_row is not None and not pd.isna(lf_row[i]):
+#             lf_j = float(lf_row[i])
+#         elif r in late_finish_plane:
+#             lf_j = float(late_finish_plane[r])
+#         else:
+#             lf_j = float(es[j] + dur[j] + big_pad)
+#         if es[j] + dur[j] > lf_j:  # garantizar ventana
+#             lf_j = es[j] + dur[j] + 1.0
+#         lf[j] = lf_j
+#
+#     # ---- Ventanas por avión (para report/KPIs) ----
+#     ES_plane = {r: ES_plane_days.get(r, 0.0) for r in planes_set}
+#     LF_plane = {r: (late_finish_plane[r] if r in late_finish_plane else
+#                     (max(lf[j] for j in jobs if plane_of[j] == r) if any(plane_of[j] == r for j in jobs) else 0.0))
+#                 for r in planes_set}
+#
+#     # ---- Logs y checks ----
+#     print(f"Slots cargados: {len(jobs)}, Ejemplo: {[f'slot{i}' for i in range(min(3, len(jobs)))]}")
+#     print(f"Posiciones cargadas: {len(POSITIONS)}, Ejemplo: {POSITIONS[:3]}")
+#     ok_windows = all(es[j] + dur[j] <= lf[j] + 1e-9 for j in jobs)
+#     print("Todas las ventanas temporales son consistentes (early/late con holgura)." if ok_windows else
+#           "⚠️ ES+D > LF detectado; se ajustó LF al vuelo.")
+#
+#     # ---- Precedencias ----
+#     preds = []
+#     for r in planes_set:
+#         jobs_r = [j for j in jobs if plane_of[j] == r]
+#         jobs_r.sort(key=lambda j: tasks[j])
+#         for k in range(len(jobs_r) - 1):
+#             j1, j2 = jobs_r[k], jobs_r[k + 1]
+#             if tasks[j1] < tasks[j2]:
+#                 preds.append((j1, j2))
+#
+#     # ---- Último job por avión ----
+#     last = {}
+#     for r in planes_set:
+#         jobs_r = [j for j in jobs if plane_of[j] == r]
+#         if not jobs_r: continue
+#         max_task = max(tasks[j] for j in jobs_r)
+#         for j in jobs_r:
+#             last[(j, r)] = 1 if tasks[j] == max_task else 0
+#
+#     # ---- Cliente → aviones ----
+#     AOC = {}
+#     for c in clients:
+#         for r in planes_set:
+#             AOC[(c, r)] = 1 if any((plane_of[j] == r and cli[j] == c) for j in jobs) else 0
+#
+#     # ---- Horizonte ----
+#     H_jobs = float(max(lf.values()) + max(dur.values()) + 10.0) if jobs else 100.0
+#
+#     # ---- DEBUG puntual (útil para tu caso del avión 54) ----
+#     try:
+#         if any(j.startswith("54-") for j in jobs):
+#             j54 = [j for j in jobs if j.startswith("54-")][0]
+#             print(
+#                 f"[DEBUG] BASE={base_date.date()}  ES(54)={es[j54]}  ES_date={(base_date + pd.to_timedelta(es[j54], 'D')).date()}  "
+#                 f"LF(54)={lf[j54]}  LF_date={(base_date + pd.to_timedelta(lf[j54], 'D')).date()}")
+#     except Exception:
+#         pass
+#
+#     # ---- Empaquetado ----
+#     global data
+#     data = {
+#         'JOBS': jobs,
+#         'PLANES': planes_set,
+#         'CLIENTS': clients,
+#         'POSITIONS': POSITIONS,
+#         'plane_of': plane_of,
+#         'client': cli,
+#         'task': tasks,
+#         'early': es, 'dur': dur, 'late': lf,  # ← días desde BASE_DATE
+#         'ES_plane': ES_plane, 'LF_plane': LF_plane,  # ← días desde BASE_DATE
+#         'AOC': AOC, 'LAST': last, 'PRED': preds,
+#         'H': H_jobs,
+#         'BASE_DATE': base_date,
+#         'INTERF_IN': INTERF_IN,
+#         'INTERF_OUT': INTERF_OUT
+#     }
+#     return data
+
+import numpy as np
+
+def read_case_single_sheet(xlsx_path: str,
+                           sheet_name: str = "case",
+                           planning_start = PLANNING_START):
+    """
+    Lee TODO desde UNA única hoja (por defecto 'case').
+
+    Columnas mínimas (case-insensitive) en la hoja:
+      job(str), plane(int), client(int), duration(float), es(fecha/float), lf(fecha/float)
+    Opcionales: task(int), date, movable, flexible, type (se ignoran para el modelo).
+
+    MUY IMPORTANTE:
+    - El conjunto de posiciones NO se lee del Excel.
+    - Se toma del parámetro global POSITIONS definido al inicio del archivo.
+
+    Devuelve 'd' compatible con build_model(d, ...).
+    """
+    # --- POSITIONS desde el global ---
+    if "POSITIONS" not in globals():
+        raise RuntimeError("Se esperaba un parámetro global POSITIONS definido al inicio del archivo.")
+    POS_LIST = list(map(str, POSITIONS))
+    if not POS_LIST:
+        raise RuntimeError("El parámetro global POSITIONS está vacío.")
+
+    # --- hoja real a leer ---
+    xl = pd.ExcelFile(xlsx_path)
+    sheet_real = None
+    for s in xl.sheet_names:
+        if s.lower() == sheet_name.lower():
+            sheet_real = s
+            break
+    if sheet_real is None:
+        sheet_real = xl.sheet_names[0]
+        print(f"⚠️  Hoja '{sheet_name}' no encontrada. Usando '{sheet_real}'.")
+
+    df = pd.read_excel(xlsx_path, sheet_name=sheet_real)
+
+    lower = {c.lower(): c for c in df.columns}
+    required = ["job","plane","client","duration","es","lf"]
+    missing = [r for r in required if r not in lower]
+    if missing:
+        raise ValueError(f"Faltan columnas requeridas {missing}. Presentes: {list(df.columns)}")
+
     base_date = _robust_base_date(planning_start)
     print(f"BASE_DATE: {base_date.date()}  (origen calendario)")
 
-    # ---- Caso (jobs) ----
-    df_case = pd.read_excel(xlsx_path, sheet_name=case_sheet)
-    rename_map = {
-        'plane': 'plane', 'task': 'task', 'job': 'job', 'date': 'date',
-        'duration': 'duration', 'movable': 'movable', 'flexible': 'flexible', 'client': 'client'
+    # Tipos base
+    jobs    = df[lower["job"]].astype(str)
+    planes  = df[lower["plane"]].astype(int)
+    clients = df[lower["client"]].astype(int)
+    dur     = df[lower["duration"]].astype(float)
+
+    # ES/LF: fecha o numérico
+    es_raw = df[lower["es"]]
+    lf_raw = df[lower["lf"]]
+    if np.issubdtype(es_raw.dtype, np.datetime64) or np.issubdtype(lf_raw.dtype, np.datetime64):
+        es = (pd.to_datetime(es_raw) - base_date).dt.total_seconds()/86400.0
+        lf = (pd.to_datetime(lf_raw) - base_date).dt.total_seconds()/86400.0
+    else:
+        es = es_raw.astype(float)
+        lf = lf_raw.astype(float)
+
+    # Garantizar LF >= ES + dur (factibilidad local)
+    lf = np.maximum(lf.values, es.values + dur.values)
+
+    # Horizonte
+    H = float(max(lf.max(), (es + dur).max()) + 1.0)
+
+    # Conjuntos
+    JOBS    = jobs.tolist()
+    PLANES  = sorted(planes.unique().tolist())
+    CLIENTS = sorted(clients.unique().tolist())
+
+    # Parámetros por job
+    early    = dict(zip(jobs, es))
+    late     = dict(zip(jobs, lf))
+    duration = dict(zip(jobs, dur))
+
+    # Mapeos job->plane/client
+    plane_of  = dict(zip(jobs, planes))
+    client_of = dict(zip(jobs, clients))
+
+    # Ventanas por avión (min ES / max LF de sus trabajos)
+    es_plane = {int(r): float(es[planes == r].min()) for r in PLANES}
+    lf_plane = {int(r): float(lf[planes == r].max()) for r in PLANES}
+
+    # Precedencias (si hay 'task', encadenamos por avión)
+    PRED = []
+    if "task" in lower:
+        ord_df = df[[lower["job"], lower["plane"], lower["es"], lower["task"]]].copy()
+        ord_df["task_"] = pd.to_numeric(ord_df[lower["task"]], errors="coerce").fillna(1).astype(int)
+        for r, g in ord_df.groupby(lower["plane"]):
+            js = g.sort_values(["task_"])[lower["job"]].astype(str).tolist()
+            for a, b in zip(js, js[1:]):
+                PRED.append((a, b))
+
+    # Último trabajo por avión (marcador simple)
+    LAST = {(j, int(r)): 1.0 if plane_of[j] == r else 0.0 for j in JOBS for r in PLANES}
+
+    # AOC[c,r] por moda de cliente en ese avión
+    plane_client = {}
+    for r in PLANES:
+        c_mode = df.loc[planes == r, lower["client"]].astype(int).mode()
+        plane_client[int(r)] = int(c_mode.iloc[0]) if not c_mode.empty \
+                               else int(df.loc[planes == r, lower["client"]].iloc[0])
+    AOC = {(int(c), int(r)): 1.0 if plane_client[int(r)] == int(c) else 0.0
+           for c in CLIENTS for r in PLANES}
+
+    print(f"Slots cargados: {len(range(1, int(min(max(1, np.ceil(H) + 10), 200)) + 1))}, "
+          f"Posiciones cargadas: {len(POS_LIST)}, Ejemplo: {POS_LIST[:3]}")
+
+    d = {
+        "JOBS": JOBS,
+        "POSITIONS": POS_LIST,     # <- desde el global
+        "CLIENTS": CLIENTS,
+        "PLANES": PLANES,
+        "early": early,
+        "late":  late,
+        "dur":   duration,
+        "H":     H,
+        "ES_plane": es_plane,
+        "LF_plane": lf_plane,
+        "plane_of": plane_of,
+        "client":   client_of,
+        "PRED":     PRED,
+        "LAST":     LAST,
+        "AOC":      AOC,
+        "BASE_DATE": base_date
     }
-    df_case = df_case.rename(columns={c: rename_map.get(c, c) for c in df_case.columns})
-
-    if 'plane' not in df_case or 'duration' not in df_case:
-        raise ValueError("La hoja del caso debe contener columnas 'plane' y 'duration'.")
-    df_case = df_case[pd.to_numeric(df_case['plane'], errors='coerce').notna()]
-    df_case = df_case[pd.to_numeric(df_case['duration'], errors='coerce').notna()]
-    df_case['plane'] = df_case['plane'].astype(int)
-    df_case['duration'] = pd.to_numeric(df_case['duration'], errors='coerce').astype(float)
-    if 'client' not in df_case: df_case['client'] = 'NA'
-    if 'task' not in df_case:   df_case['task'] = 1
-    df_case['task'] = pd.to_numeric(df_case['task'], errors='coerce').fillna(1).astype(int)
-
-    # ---- Planes (SIN fallback) ----
-    xls = pd.ExcelFile(xlsx_path)
-    if planes_sheet not in xls.sheet_names:
-        raise ValueError(f"La hoja '{planes_sheet}' no existe en el Excel.")
-    df_planes = pd.read_excel(xlsx_path, sheet_name=planes_sheet)
-    if 'plane' not in df_planes.columns:
-        raise ValueError(f"La hoja '{planes_sheet}' debe tener columna 'plane'.")
-
-    # early_start y late_finish por avión → DIAS desde BASE_DATE
-    early_start_plane = {}
-    late_finish_plane = {}
-    if 'early_start' in df_planes.columns:
-        tmp = df_planes[['plane', 'early_start']].dropna().copy()
-        tmp['plane'] = tmp['plane'].astype(int)
-        tmp['ES_days'] = tmp['early_start'].apply(lambda v: _to_days_from_base(v, base_date))
-        early_start_plane = dict(zip(tmp['plane'], tmp['ES_days']))
-    if 'late_finish' in df_planes.columns:
-        tmp = df_planes[['plane', 'late_finish']].dropna().copy()
-        tmp['plane'] = tmp['plane'].astype(int)
-        tmp['LF_days'] = tmp['late_finish'].apply(lambda v: _to_days_from_base(v, base_date))
-        late_finish_plane = dict(zip(tmp['plane'], tmp['LF_days']))
-
-    # ---- Jobs (ids, orden) ----
-    if 'job' not in df_case.columns or df_case['job'].isna().any():
-        df_case['job'] = df_case.apply(lambda r: f"{int(r.plane)}-{int(r.task)}", axis=1)
-    df_case = df_case.sort_values(['plane', 'task']).reset_index(drop=True)
-
-    jobs = [str(r.job) for _, r in df_case.iterrows()]
-    planes = [int(r.plane) for _, r in df_case.iterrows()]
-    tasks = {jobs[i]: int(df_case.loc[i, 'task']) for i in range(len(jobs))}
-    dur = {jobs[i]: float(df_case.loc[i, 'duration']) for i in range(len(jobs))}
-    cli = {jobs[i]: str(df_case.loc[i, 'client']) for i in range(len(jobs))}
-    plane_of = {jobs[i]: planes[i] for i in range(len(jobs))}
-    clients = sorted(set(cli.values()))
-    planes_set = sorted(set(planes))
-
-    # ---- ES por job ----
-    # Opción A (la que tenías activa): ES_j = early_start del avión
-    ES_plane_days = {r: float(early_start_plane.get(r, 0.0)) for r in planes_set}
-    es = {j: ES_plane_days[plane_of[j]] for j in jobs}
-
-    # Opción B (si quieres que ES venga de case_261.date): DESCOMENTA estas 2 líneas y comenta la opción A
-    # if 'date' in df_case.columns:
-    #     es = {jobs[i]: float(_to_days_from_base(df_case.loc[i,'date'], base_date)) for i in range(len(jobs))}
-
-    # ---- LF por job (prioridad: case.late > planes.late_finish > derivado) ----
-    lf_row = None
-    if 'late' in df_case.columns:
-        lf_row = df_case['late'].apply(lambda v: _to_days_from_base(v, base_date)).tolist()
-
-    big_pad = (max(dur.values()) if len(dur) > 0 else 1.0) * 10 + 100.0
-    lf = {}
-    for i, j in enumerate(jobs):
-        r = plane_of[j]
-        if lf_row is not None and not pd.isna(lf_row[i]):
-            lf_j = float(lf_row[i])
-        elif r in late_finish_plane:
-            lf_j = float(late_finish_plane[r])
-        else:
-            lf_j = float(es[j] + dur[j] + big_pad)
-        if es[j] + dur[j] > lf_j:  # garantizar ventana
-            lf_j = es[j] + dur[j] + 1.0
-        lf[j] = lf_j
-
-    # ---- Ventanas por avión (para report/KPIs) ----
-    ES_plane = {r: ES_plane_days.get(r, 0.0) for r in planes_set}
-    LF_plane = {r: (late_finish_plane[r] if r in late_finish_plane else
-                    (max(lf[j] for j in jobs if plane_of[j] == r) if any(plane_of[j] == r for j in jobs) else 0.0))
-                for r in planes_set}
-
-    # ---- Logs y checks ----
-    print(f"Slots cargados: {len(jobs)}, Ejemplo: {[f'slot{i}' for i in range(min(3, len(jobs)))]}")
-    print(f"Posiciones cargadas: {len(POSITIONS)}, Ejemplo: {POSITIONS[:3]}")
-    ok_windows = all(es[j] + dur[j] <= lf[j] + 1e-9 for j in jobs)
-    print("Todas las ventanas temporales son consistentes (early/late con holgura)." if ok_windows else
-          "⚠️ ES+D > LF detectado; se ajustó LF al vuelo.")
-
-    # ---- Precedencias ----
-    preds = []
-    for r in planes_set:
-        jobs_r = [j for j in jobs if plane_of[j] == r]
-        jobs_r.sort(key=lambda j: tasks[j])
-        for k in range(len(jobs_r) - 1):
-            j1, j2 = jobs_r[k], jobs_r[k + 1]
-            if tasks[j1] < tasks[j2]:
-                preds.append((j1, j2))
-
-    # ---- Último job por avión ----
-    last = {}
-    for r in planes_set:
-        jobs_r = [j for j in jobs if plane_of[j] == r]
-        if not jobs_r: continue
-        max_task = max(tasks[j] for j in jobs_r)
-        for j in jobs_r:
-            last[(j, r)] = 1 if tasks[j] == max_task else 0
-
-    # ---- Cliente → aviones ----
-    AOC = {}
-    for c in clients:
-        for r in planes_set:
-            AOC[(c, r)] = 1 if any((plane_of[j] == r and cli[j] == c) for j in jobs) else 0
-
-    # ---- Horizonte ----
-    H_jobs = float(max(lf.values()) + max(dur.values()) + 10.0) if jobs else 100.0
-
-    # ---- DEBUG puntual (útil para tu caso del avión 54) ----
-    try:
-        if any(j.startswith("54-") for j in jobs):
-            j54 = [j for j in jobs if j.startswith("54-")][0]
-            print(
-                f"[DEBUG] BASE={base_date.date()}  ES(54)={es[j54]}  ES_date={(base_date + pd.to_timedelta(es[j54], 'D')).date()}  "
-                f"LF(54)={lf[j54]}  LF_date={(base_date + pd.to_timedelta(lf[j54], 'D')).date()}")
-    except Exception:
-        pass
-
-    # ---- Empaquetado ----
-    global data
-    data = {
-        'JOBS': jobs,
-        'PLANES': planes_set,
-        'CLIENTS': clients,
-        'POSITIONS': POSITIONS,
-        'plane_of': plane_of,
-        'client': cli,
-        'task': tasks,
-        'early': es, 'dur': dur, 'late': lf,  # ← días desde BASE_DATE
-        'ES_plane': ES_plane, 'LF_plane': LF_plane,  # ← días desde BASE_DATE
-        'AOC': AOC, 'LAST': last, 'PRED': preds,
-        'H': H_jobs,
-        'BASE_DATE': base_date,
-        'INTERF_IN': INTERF_IN,
-        'INTERF_OUT': INTERF_OUT
-    }
-    return data
+    return d
 
 
 # -----------------------
@@ -1170,11 +1288,11 @@ def fact_check_solution(model, data, tol=1e-6, csv_prefix="violations"):
 # MAIN
 # -----------------------
 if __name__ == "__main__":
-    XLSX = "input_data.xlsx"
-    SHEET = "case_261"
-    d = read_input(XLSX, SHEET, planning_start=PLANNING_START)
+    d = read_case_single_sheet(CASE_XLSX, sheet_name=CASE_SHEET, planning_start=PLANNING_START)
     model = build_model(d,
                         client_pos_policy=CLIENT_POS_POLICY,
                         w_client_pos=W_CLIENT_POS,
                         wms=W_MAKESPAN)
-    solve_and_report(model, XLSX, SHEET, timelimit=1500, mipgap=GAP)
+    data = d
+
+    solve_and_report(model, CASE_XLSX, CASE_SHEET, timelimit=1500, mipgap=GAP)
