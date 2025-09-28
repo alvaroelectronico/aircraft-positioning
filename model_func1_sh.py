@@ -49,7 +49,7 @@ GAP = 0.05
 
 # === PARÁMETROS DE ENTRADA ===
 CASE_XLSX = "case_26.xlsx"   # <-- cámbialo aquí
-CASE_SHEET = "case_26"           # <-- una sola hoja con todo (min: job, plane, client, position, duration, es, lf)
+CASE_SHEET = "case_26"           # <-- una sola hoja 
 PLANNING_START = "2024-11-17" # origen calendario; puede ser None o "YYYY-MM-DD"
 
 
@@ -289,7 +289,7 @@ def read_case_single_sheet(xlsx_path: str,
                            sheet_name: str = "case",
                            planning_start = PLANNING_START):
     """
-    Lee TODO desde UNA única hoja (por defecto 'case').
+
 
     Columnas mínimas (case-insensitive) en la hoja:
       job(str), plane(int), client(int), duration(float), es(fecha/float), lf(fecha/float)
