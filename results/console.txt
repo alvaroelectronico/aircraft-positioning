@@ -1,0 +1,985 @@
+Microsoft Windows [Versión 10.0.26200.6899]
+(c) Microsoft Corporation. Todos los derechos reservados.
+
+(base) C:\Users\FX516>cd C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning
+
+(base) C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning>conda activate CODE
+
+(CODE) C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning>pip install pyomo pandas numpy openpyxl
+Requirement already satisfied: pyomo in c:\users\fx516\anaconda3\envs\code\lib\site-packages (6.9.2)
+Requirement already satisfied: pandas in c:\users\fx516\anaconda3\envs\code\lib\site-packages (2.2.3)
+Requirement already satisfied: numpy in c:\users\fx516\anaconda3\envs\code\lib\site-packages (2.0.1)
+Requirement already satisfied: openpyxl in c:\users\fx516\anaconda3\envs\code\lib\site-packages (3.1.5)
+Requirement already satisfied: ply in c:\users\fx516\anaconda3\envs\code\lib\site-packages (from pyomo) (3.11)
+Requirement already satisfied: python-dateutil>=2.8.2 in c:\users\fx516\anaconda3\envs\code\lib\site-packages (from pandas) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in c:\users\fx516\anaconda3\envs\code\lib\site-packages (from pandas) (2024.1)
+Requirement already satisfied: tzdata>=2022.7 in c:\users\fx516\anaconda3\envs\code\lib\site-packages (from pandas) (2023.3)
+Requirement already satisfied: et-xmlfile in c:\users\fx516\anaconda3\envs\code\lib\site-packages (from openpyxl) (1.1.0)
+Requirement already satisfied: six>=1.5 in c:\users\fx516\anaconda3\envs\code\lib\site-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)
+
+(CODE) C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning>python batch_runner.py --model-module model_func1_sh ^
+¿Más?   --scenarios-dir scenarios_suite --pattern "*.xlsx" --sheet case ^
+¿Más?   --modes soft12 soft medium hard ^
+¿Más?   --solver gurobi --timelimit 300 --mipgap 0.02 ^
+¿Más?   --n-positions 5 --pos-prefix position ^
+¿Más?   --out results\results_suite_allmodes.csv
+No se encontraron escenarios en scenarios_suite/*.xlsx
+
+(CODE) C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning>python batch_runner.py --model-module model_func1_sh ^
+¿Más?   --scenarios-dir scenarios_suite --pattern "*.xlsx" --sheet case ^
+¿Más?   --modes soft12 soft medium hard ^
+¿Más?   --solver gurobi --timelimit 300 --mipgap 0.02 ^
+¿Más?   --n-positions 5 --pos-prefix position ^
+¿Más?   --out results\results_suite_allmodes.csv
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed101.xlsx | soft12 | 0.692s | gap= | obj=199.448
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed101.xlsx | soft | 0.634s | gap= | obj=199.448
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed101.xlsx | medium | 0.84s | gap= | obj=199.448
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed101.xlsx | hard | 0.772s | gap= | obj=199.448
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed102.xlsx | soft12 | 0.552s | gap= | obj=186.059
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed102.xlsx | soft | 0.556s | gap= | obj=186.059
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed102.xlsx | medium | 0.677s | gap= | obj=186.059
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed102.xlsx | hard | 0.606s | gap= | obj=186.059
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed103.xlsx | soft12 | 0.493s | gap= | obj=196.37
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed103.xlsx | soft | 0.478s | gap= | obj=196.37
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed103.xlsx | medium | 0.541s | gap= | obj=196.37
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed103.xlsx | hard | 0.575s | gap= | obj=196.37
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed104.xlsx | soft12 | 0.487s | gap= | obj=166.124
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed104.xlsx | soft | 0.407s | gap= | obj=166.124
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed104.xlsx | medium | 0.425s | gap= | obj=166.124
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed104.xlsx | hard | 0.378s | gap= | obj=166.124
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed105.xlsx | soft12 | 0.502s | gap= | obj=193.907
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed105.xlsx | soft | 0.519s | gap= | obj=193.907
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed105.xlsx | medium | 0.622s | gap= | obj=193.907
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed105.xlsx | hard | 0.688s | gap= | obj=193.907
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed106.xlsx | soft12 | 0.866s | gap= | obj=191.51299999999986
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed106.xlsx | soft | 0.746s | gap= | obj=191.51299999999986
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed106.xlsx | medium | 0.716s | gap= | obj=188.382
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed106.xlsx | hard | 0.735s | gap= | obj=188.382
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 47, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed107.xlsx | soft12 | 0.579s | gap= | obj=167.707
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 47, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed107.xlsx | soft | 0.438s | gap= | obj=167.707
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 47, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed107.xlsx | medium | 0.516s | gap= | obj=167.707
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 47, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed107.xlsx | hard | 0.513s | gap= | obj=167.707
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed108.xlsx | soft12 | 0.609s | gap= | obj=161.036
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed108.xlsx | soft | 0.454s | gap= | obj=161.036
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed108.xlsx | medium | 0.516s | gap= | obj=161.036
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed108.xlsx | hard | 0.535s | gap= | obj=161.036
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed109.xlsx | soft12 | 0.51s | gap= | obj=210.704
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed109.xlsx | soft | 0.504s | gap= | obj=210.704
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed109.xlsx | medium | 0.547s | gap= | obj=210.704
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed109.xlsx | hard | 0.556s | gap= | obj=210.704
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed110.xlsx | soft12 | 0.617s | gap= | obj=181.734
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed110.xlsx | soft | 0.571s | gap= | obj=181.734
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed110.xlsx | medium | 0.593s | gap= | obj=181.734
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-loose_seed110.xlsx | hard | 0.603s | gap= | obj=181.734
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed101.xlsx | soft12 | 0.475s | gap= | obj=116.241
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed101.xlsx | soft | 0.444s | gap= | obj=116.241
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed101.xlsx | medium | 0.641s | gap= | obj=1000116.241
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed101.xlsx | hard | 0.761s | gap= | obj=21000116.241
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 30, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed102.xlsx | soft12 | 0.367s | gap= | obj=107.87
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 30, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed102.xlsx | soft | 0.337s | gap= | obj=107.87
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 30, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed102.xlsx | medium | 0.39s | gap= | obj=107.87
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 30, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed102.xlsx | hard | 0.364s | gap= | obj=20000107.87
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed103.xlsx | soft12 | 0.333s | gap= | obj=115.602
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed103.xlsx | soft | 0.323s | gap= | obj=115.602
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed103.xlsx | medium | 0.343s | gap= | obj=115.602
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed103.xlsx | hard | 0.429s | gap= | obj=115.602
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed104.xlsx | soft12 | 0.491s | gap= | obj=99.696
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed104.xlsx | soft | 0.505s | gap= | obj=99.696
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed104.xlsx | medium | 0.277s | gap= | obj=99.696
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed104.xlsx | hard | 0.464s | gap= | obj=99.696
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed105.xlsx | soft12 | 0.329s | gap= | obj=115.617
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed105.xlsx | soft | 0.321s | gap= | obj=115.617
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed105.xlsx | medium | 0.366s | gap= | obj=115.617
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 32, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed105.xlsx | hard | 0.405s | gap= | obj=115.617
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 31, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed106.xlsx | soft12 | 0.314s | gap= | obj=111.613
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 31, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed106.xlsx | soft | 0.314s | gap= | obj=111.613
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 31, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed106.xlsx | medium | 0.378s | gap= | obj=111.613
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 31, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed106.xlsx | hard | 0.362s | gap= | obj=111.613
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed107.xlsx | soft12 | 0.251s | gap= | obj=100.37899999999999
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed107.xlsx | soft | 0.245s | gap= | obj=100.37899999999999
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed107.xlsx | medium | 0.334s | gap= | obj=100.37899999999999
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 28, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed107.xlsx | hard | 0.332s | gap= | obj=100.37899999999999
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 27, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed108.xlsx | soft12 | 0.335s | gap= | obj=96.499
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 27, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed108.xlsx | soft | 0.299s | gap= | obj=96.499
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 27, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed108.xlsx | medium | 0.327s | gap= | obj=96.499
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 27, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed108.xlsx | hard | 0.508s | gap= | obj=96.499
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 33, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed109.xlsx | soft12 | 0.37s | gap= | obj=120.22800000000001
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 33, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed109.xlsx | soft | 0.332s | gap= | obj=120.22800000000001
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 33, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed109.xlsx | medium | 0.349s | gap= | obj=120.22800000000001
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 33, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed109.xlsx | hard | 0.362s | gap= | obj=20000120.228
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 29, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed110.xlsx | soft12 | 0.392s | gap= | obj=104.479
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 29, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed110.xlsx | soft | 0.368s | gap= | obj=104.479
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 29, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed110.xlsx | medium | 0.44s | gap= | obj=104.479
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 29, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_few-tight_seed110.xlsx | hard | 0.41s | gap= | obj=104.479
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed101.xlsx | soft12 | 20.719s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed101.xlsx | soft | 21.721s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed101.xlsx | medium | 33.417s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed101.xlsx | hard | 29.866s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed102.xlsx | soft12 | 18.292s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed102.xlsx | soft | 16.174s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed102.xlsx | medium | 26.663s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed102.xlsx | hard | 26.503s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed103.xlsx | soft12 | 19.4s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed103.xlsx | soft | 20.215s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed103.xlsx | medium | 28.146s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed103.xlsx | hard | 36.42s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed104.xlsx | soft12 | 13.656s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed104.xlsx | soft | 18.039s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed104.xlsx | medium | 24.69s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed104.xlsx | hard | 27.72s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed105.xlsx | soft12 | 20.685s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed105.xlsx | soft | 23.61s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed105.xlsx | medium | 34.562s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed105.xlsx | hard | 28.727s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed106.xlsx | soft12 | 20.495s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed106.xlsx | soft | 19.639s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed106.xlsx | medium | 38.601s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 58, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed106.xlsx | hard | 29.882s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed107.xlsx | soft12 | 18.099s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed107.xlsx | soft | 17.7s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed107.xlsx | medium | 21.621s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed107.xlsx | hard | 21.417s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed108.xlsx | soft12 | 14.766s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed108.xlsx | soft | 14.144s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed108.xlsx | medium | 20.904s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 61, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed108.xlsx | hard | 18.879s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 59, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed109.xlsx | soft12 | 17.661s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 59, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed109.xlsx | soft | 16.713s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 59, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed109.xlsx | medium | 22.39s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 59, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed109.xlsx | hard | 22.623s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 68, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed110.xlsx | soft12 | 15.683s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 68, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed110.xlsx | soft | 16.924s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 68, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed110.xlsx | medium | 22.136s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 68, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_heavy-mix_seed110.xlsx | hard | 23.323s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed101.xlsx | soft12 | 264.332s | gap= | obj=444.6860000000001
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed101.xlsx | soft | 273.515s | gap= | obj=444.6860000000001
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed101.xlsx | medium | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed101.xlsx | hard | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed102.xlsx | soft12 | 54.49s | gap= | obj=471.222
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed102.xlsx | soft | 56.518s | gap= | obj=471.222
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed102.xlsx | medium | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 54, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed102.xlsx | hard | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed103.xlsx | soft12 | 14.841s | gap= | obj=417.938
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed103.xlsx | soft | 15.79s | gap= | obj=417.938
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed103.xlsx | medium | 303.109s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed103.xlsx | hard | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed104.xlsx | soft12 | 9.874s | gap= | obj=436.895
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed104.xlsx | soft | 10.299s | gap= | obj=436.895
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed104.xlsx | medium | 302.777s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed104.xlsx | hard | 303.036s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed105.xlsx | soft12 | 29.16s | gap= | obj=461.76900000000006
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed105.xlsx | soft | 36.155s | gap= | obj=461.76900000000006
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed105.xlsx | medium | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed105.xlsx | hard | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed106.xlsx | soft12 | 19.381s | gap= | obj=463.369
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed106.xlsx | soft | 18.192s | gap= | obj=463.369
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed106.xlsx | medium | 303.609s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed106.xlsx | hard | 306.244s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 45, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed107.xlsx | soft12 | 10.829s | gap= | obj=390.873
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 45, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed107.xlsx | soft | 11.752s | gap= | obj=390.873
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 45, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed107.xlsx | medium | 303.456s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 45, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed107.xlsx | hard | 302.241s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed108.xlsx | soft12 | 20.058s | gap= | obj=452.221
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed108.xlsx | soft | 20.167s | gap= | obj=452.221
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed108.xlsx | medium | 302.294s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed108.xlsx | hard | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed109.xlsx | soft12 | 18.44s | gap= | obj=400.41599999999994
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed109.xlsx | soft | 18.989s | gap= | obj=400.41599999999994
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed109.xlsx | medium | 302.333s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 46, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[ERR] scn_many-medium_seed109.xlsx | hard | Cannot load a SolverResults object with bad status: aborted
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed110.xlsx | soft12 | 6.759s | gap= | obj=463.01099999999997
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+[OK] scn_many-medium_seed110.xlsx | soft | 6.649s | gap= | obj=463.01099999999997
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed110.xlsx | medium | 302.2s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with an 'aborted' status, but
+containing a solution
+[OK] scn_many-medium_seed110.xlsx | hard | 302.169s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed101.xlsx | soft12 | 5.954s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed101.xlsx | soft | 5.755s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed101.xlsx | medium | 7.378s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed101.xlsx | hard | 7.145s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed102.xlsx | soft12 | 6.023s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed102.xlsx | soft | 8.067s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed102.xlsx | medium | 9.471s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed102.xlsx | hard | 8.439s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed103.xlsx | soft12 | 7.699s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed103.xlsx | soft | 7.474s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed103.xlsx | medium | 9.805s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 48, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed103.xlsx | hard | 10.074s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed104.xlsx | soft12 | 5.713s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed104.xlsx | soft | 6.501s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed104.xlsx | medium | 6.921s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed104.xlsx | hard | 7.316s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed105.xlsx | soft12 | 7.672s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed105.xlsx | soft | 7.7s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed105.xlsx | medium | 9.442s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 49, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed105.xlsx | hard | 9.673s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed106.xlsx | soft12 | 7.245s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed106.xlsx | soft | 7.183s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed106.xlsx | medium | 9.363s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 52, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed106.xlsx | hard | 9.092s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed107.xlsx | soft12 | 6.072s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed107.xlsx | soft | 6.481s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed107.xlsx | medium | 7.517s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 51, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed107.xlsx | hard | 7.588s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed108.xlsx | soft12 | 7.081s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed108.xlsx | soft | 6.806s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed108.xlsx | medium | 8.433s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 55, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed108.xlsx | hard | 8.834s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed109.xlsx | soft12 | 6.932s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed109.xlsx | soft | 6.545s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed109.xlsx | medium | 8.566s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 50, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed109.xlsx | hard | 8.638s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed110.xlsx | soft12 | 6.666s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed110.xlsx | soft | 6.536s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed110.xlsx | medium | 8.244s | gap= | obj=
+BASE_DATE: 2024-11-17  (origen calendario)
+Slots cargados: 53, Posiciones cargadas: 5, Ejemplo: ['position1', 'position2', 'position3']
+WARNING: Loading a SolverResults object with a warning status into
+model.name="unknown";
+    - termination condition: infeasible
+    - message from solver: Model was proven to be infeasible.
+[OK] scn_many-tight_seed110.xlsx | hard | 8.411s | gap= | obj=
+
+RESULTADOS guardados en: results\results_suite_allmodes.csv
+
+Tiempo medio por modo (s):
+        solve_time_s
+mode
+hard       35.786773
+medium     52.933745
+soft       14.614960
+soft12     14.084820

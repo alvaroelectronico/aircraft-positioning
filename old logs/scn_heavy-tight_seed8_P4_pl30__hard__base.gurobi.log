@@ -1,0 +1,64 @@
+
+Gurobi 13.0.1 (win64) logging started Sun Feb  8 20:48:36 2026
+
+Set parameter LogFile to value "logs\scn_heavy-tight_seed8_P4_pl30__hard__base.gurobi.log"
+Gurobi Optimizer version 13.0.1 build v13.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Non-default parameters:
+TimeLimit  300
+MIPGap  0.02
+
+Optimize a model with 442027 rows, 271130 columns and 1620800 nonzeros (Min)
+Model fingerprint: 0xd9db855f
+Model has 183387 linear objective coefficients
+Variable types: 1123 continuous, 270007 integer (270007 binary)
+Coefficient statistics:
+  Matrix range     [3e-02, 3e+02]
+  Objective range  [8e-01, 2e+07]
+  Bounds range     [1e+00, 2e+02]
+  RHS range        [1e+00, 1e+03]
+
+Presolve removed 322952 rows and 187776 columns
+Presolve time: 4.97s
+Presolved: 119075 rows, 83354 columns, 443502 nonzeros
+Variable types: 85 continuous, 83269 integer (83269 binary)
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    1.9901700e+02   9.700000e+01   5.380000e+08      6s
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    1.9901700e+02   9.000000e+01   4.500000e+08      6s
+Concurrent spin time: 0.01s
+
+Solved with dual simplex
+
+Root relaxation: infeasible, 7021 iterations, 0.80 seconds (0.65 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 infeasible    0               - infeasible      -     -    6s
+
+Explored 1 nodes (7021 simplex iterations) in 6.30 seconds (5.88 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Model is infeasible
+Best objective -, best bound -, gap -

@@ -1,0 +1,201 @@
+scenario;mode;preset;status;termination;solve_time_s;mipgap;best_bound;objective;Tmax;client_delay_sum;viol_C_sum;client_switches;positions_slack_used;switches_slot_sum;presence_sum;idle_sum;n_jobs;n_planes;n_clients;n_positions;H;n_vars;n_cons;n_bin
+scn_custom_many_tight_pl10.xlsx;soft12;base;ok;optimal;8.318;;;;90.617;0.0;0.0;;;0.0;0.0;1010.0;25;10;6;5;90.617;31312;43276;30995
+scn_custom_many_tight_pl10.xlsx;soft;base;ok;optimal;9.16;;;;90.617;0.0;0.0;;;0.0;0.0;1010.0;25;10;6;5;90.617;31324;43282;30995
+scn_custom_many_tight_pl10.xlsx;medium;base;ok;optimal;65.362;;;;90.617;0.0;0.0;0.0;;0.0;0.0;1010.0;25;10;6;5;90.617;32609;48422;32280
+scn_custom_many_tight_pl10.xlsx;hard;base;ok;optimal;14.407;;;;90.617;0.0;0.0;0.0;1.0;0.0;0.0;1010.0;25;10;6;5;90.617;32614;48427;32285
+scn_custom_many_tight_pl12.xlsx;soft12;base;ok;optimal;5.337;;;;8.939.099.999.999.990;0.0;0.0;;;0.0;0.0;1200.0;24;12;6;5;8.939.099.999.999.990;32229;44577;31922
+scn_custom_many_tight_pl12.xlsx;soft;base;ok;optimal;6.564;;;;8.939.099.999.999.990;0.0;0.0;;;0.0;0.0;1200.0;24;12;6;5;8.939.099.999.999.990;32241;44583;31922
+scn_custom_many_tight_pl12.xlsx;medium;base;ok;optimal;12.394;;;;8.939.099.999.999.990;0.0;0.0;0.0;;0.0;0.0;1200.0;24;12;6;5;8.939.099.999.999.990;33426;49323;33107
+scn_custom_many_tight_pl12.xlsx;hard;base;ok;optimal;19.429;;;;8.939.099.999.999.990;0.0;0.0;2.0;1.0;0.0;0.0;1200.0;24;12;6;5;8.939.099.999.999.990;33431;49328;33112
+scn_custom_many_tight_pl14.xlsx;soft12;base;ok;optimal;8.03;;;;9.637.100.000.000.000;0.0;0.0;;;0.0;0.0;1498.0;25;14;6;5;9.637.100.000.000.000;37464;51824;37143
+scn_custom_many_tight_pl14.xlsx;soft;base;ok;optimal;7.781;;;;9.637.100.000.000.000;0.0;0.0;;;0.0;0.0;1498.0;25;14;6;5;9.637.100.000.000.000;37476;51830;37143
+scn_custom_many_tight_pl14.xlsx;medium;base;ok;optimal;42.585;;;;9.637.100.000.000.000;0.0;0.0;0.0;;0.0;0.0;1498.0;25;14;6;5;9.637.100.000.000.000;38751;56930;38418
+scn_custom_many_tight_pl14.xlsx;hard;base;ok;optimal;39.885;;;;9.637.100.000.000.000;0.0;0.0;3.0;1.0;0.0;0.0;1498.0;25;14;6;5;9.637.100.000.000.000;38756;56935;38423
+scn_custom_many_tight_pl16.xlsx;soft12;base;ok;optimal;12.86;;;;118.863;0.0;0.0;;;0.0;0.0;2064.0;33;16;6;5;118.863;56864;79176;56445
+scn_custom_many_tight_pl16.xlsx;soft;base;ok;optimal;14.048;;;;118.863;0.0;0.0;;;0.0;0.0;2064.0;33;16;6;5;118.863;56876;79182;56445
+scn_custom_many_tight_pl16.xlsx;medium;base;aborted;maxTimeLimit;307.209;;;;118.863;0.0;0.0;5.0;;0.0;0.0;2064.0;33;16;6;5;118.863;59136;88222;58705
+scn_custom_many_tight_pl16.xlsx;hard;base;aborted;maxTimeLimit;309.689;;;;118.863;0.0;0.0;8.0;1.0;0.0;0.0;2064.0;33;16;6;5;118.863;59141;88227;58710
+scn_custom_many_tight_pl18.xlsx;soft12;base;ok;optimal;22.881;;;;145.194;0.0;0.0;;;0.0;0.0;2808.0;41;18;6;5;145.194;82440;115002;81923
+scn_custom_many_tight_pl18.xlsx;soft;base;ok;optimal;24.136;;;;145.194;0.0;0.0;;;0.0;0.0;2808.0;41;18;6;5;145.194;82452;115008;81923
+scn_custom_many_tight_pl18.xlsx;medium;base;ok;optimal;176.387;;;;145.194;0.0;0.0;0.0;;0.0;0.0;2808.0;41;18;6;5;145.194;85942;128968;85413
+scn_custom_many_tight_pl18.xlsx;hard;base;aborted;maxTimeLimit;311.672;;;;145.194;0.0;0.0;3.0;2.0;0.0;0.0;2808.0;41;18;6;5;145.194;85947;128973;85418
+scn_custom_many_tight_pl20.xlsx;soft12;base;ok;optimal;16.624;;;;112.568;0.0;0.0;;;0.0;0.0;2460.0;35;20;6;5;112.568;62942;88696;62495
+scn_custom_many_tight_pl20.xlsx;soft;base;ok;optimal;17.305;;;;112.568;0.0;0.0;;;0.0;0.0;2460.0;35;20;6;5;112.568;62954;88702;62495
+scn_custom_many_tight_pl20.xlsx;medium;base;ok;optimal;45.793;;;;112.568;0.0;0.0;1.0;;0.0;0.0;2460.0;35;20;6;5;112.568;65469;98762;65010
+scn_custom_many_tight_pl20.xlsx;hard;base;ok;optimal;70.754;;;;112.568;0.0;0.0;2.0;1.0;0.0;0.0;2460.0;35;20;6;5;112.568;65474;98767;65015
+scn_few-loose_seed10_P3_pl5.xlsx;soft12;base;ok;optimal;4.291;;;;86.569;0.0;0.0;;;0.0;0.0;485.0;14;5;3;5;86.569;14874;19479;14697
+scn_few-loose_seed10_P3_pl5.xlsx;soft;base;ok;optimal;3.428;;;;86.569;0.0;0.0;;;0.0;0.0;485.0;14;5;3;5;86.569;14880;19482;14697
+scn_few-loose_seed10_P3_pl5.xlsx;medium;base;ok;optimal;3.647;;;;86.569;0.0;0.0;0.0;;0.0;0.0;485.0;14;5;3;5;86.569;15180;20682;14997
+scn_few-loose_seed10_P3_pl5.xlsx;hard;base;ok;optimal;3.197;;;;86.569;0.0;0.0;0.0;0.0;0.0;0.0;485.0;14;5;3;5;86.569;15185;20687;15002
+scn_few-loose_seed11_P3_pl5.xlsx;soft12;base;ok;optimal;2.755;;;;77.588;0.0;0.0;;;0.0;0.0;440.0;9;5;3;5;77.588;10209;13299;10092
+scn_few-loose_seed11_P3_pl5.xlsx;soft;base;ok;optimal;2.918;;;;77.588;0.0;0.0;;;0.0;0.0;440.0;9;5;3;5;77.588;10215;13302;10092
+scn_few-loose_seed11_P3_pl5.xlsx;medium;base;ok;optimal;2.732;;;;77.588;0.0;0.0;0.0;;0.0;0.0;440.0;9;5;3;5;77.588;10345;13822;10222
+scn_few-loose_seed11_P3_pl5.xlsx;hard;base;ok;optimal;2.481;;;;77.588;0.0;0.0;0.0;0.0;0.0;0.0;440.0;9;5;3;5;77.588;10350;13827;10227
+scn_few-loose_seed12_P3_pl5.xlsx;soft12;base;ok;optimal;2.256;;;;65.818;0.0;0.0;;;0.0;0.0;380.0;8;5;3;5;65.818;8376;10974;8271
+scn_few-loose_seed12_P3_pl5.xlsx;soft;base;ok;optimal;1.862;;;;65.818;0.0;0.0;;;0.0;0.0;380.0;8;5;3;5;65.818;8382;10977;8271
+scn_few-loose_seed12_P3_pl5.xlsx;medium;base;ok;optimal;2.371;;;;65.818;0.0;0.0;0.0;;0.0;0.0;380.0;8;5;3;5;65.818;8482;11377;8371
+scn_few-loose_seed12_P3_pl5.xlsx;hard;base;ok;optimal;2.723;;;;65.818;0.0;0.0;0.0;0.0;0.0;0.0;380.0;8;5;3;5;65.818;8487;11382;8376
+scn_few-loose_seed1_P3_pl5.xlsx;soft12;base;ok;optimal;3.251;;;;82.785;0.0;0.0;;;0.0;0.0;465.0;12;5;3;5;82.785;12840;16763;12687
+scn_few-loose_seed1_P3_pl5.xlsx;soft;base;ok;optimal;2.547;;;;82.785;0.0;0.0;;;0.0;0.0;465.0;12;5;3;5;82.785;12846;16766;12687
+scn_few-loose_seed1_P3_pl5.xlsx;medium;base;ok;optimal;2.639;;;;82.785;0.0;0.0;0.0;;0.0;0.0;465.0;12;5;3;5;82.785;13081;17706;12922
+scn_few-loose_seed1_P3_pl5.xlsx;hard;base;ok;optimal;2.425;;;;82.785;0.0;0.0;0.0;0.0;0.0;0.0;465.0;12;5;3;5;82.785;13086;17711;12927
+scn_few-loose_seed2_P3_pl5.xlsx;soft12;base;ok;optimal;2.853;;;;8.782.300.000.000.000;0.0;0.0;;;0.0;0.0;490.0;13;5;3;5;8.782.300.000.000.000;14211;18539;14046
+scn_few-loose_seed2_P3_pl5.xlsx;soft;base;ok;optimal;3.21;;;;8.782.300.000.000.000;0.0;0.0;;;0.0;0.0;490.0;13;5;3;5;8.782.300.000.000.000;14217;18542;14046
+scn_few-loose_seed2_P3_pl5.xlsx;medium;base;ok;optimal;3.29;;;;8.782.300.000.000.000;0.0;0.0;0.0;;0.0;0.0;490.0;13;5;3;5;8.782.300.000.000.000;14487;19622;14316
+scn_few-loose_seed2_P3_pl5.xlsx;hard;base;ok;optimal;2.297;;;;8.782.300.000.000.000;0.0;0.0;0.0;0.0;0.0;0.0;490.0;13;5;3;5;8.782.300.000.000.000;14492;19627;14321
+scn_few-loose_seed3_P3_pl5.xlsx;soft12;base;ok;optimal;1.153;;;;57.091;0.0;0.0;;;0.0;0.0;340.0;8;5;3;5;57.091;7576;9974;7471
+scn_few-loose_seed3_P3_pl5.xlsx;soft;base;ok;optimal;1.051;;;;57.091;0.0;0.0;;;0.0;0.0;340.0;8;5;3;5;57.091;7582;9977;7471
+scn_few-loose_seed3_P3_pl5.xlsx;medium;base;ok;optimal;1.194;;;;57.091;0.0;0.0;0.0;;0.0;0.0;340.0;8;5;3;5;57.091;7667;10317;7556
+scn_few-loose_seed3_P3_pl5.xlsx;hard;base;ok;optimal;1.33;;;;57.091;0.0;0.0;0.0;0.0;0.0;0.0;340.0;8;5;3;5;57.091;7672;10322;7561
+scn_few-loose_seed4_P3_pl5.xlsx;soft12;base;ok;optimal;1.522;;;;78.738;0.0;0.0;;;0.0;0.0;445.0;10;5;3;5;78.738;10974;14303;10845
+scn_few-loose_seed4_P3_pl5.xlsx;soft;base;ok;optimal;1.379;;;;78.738;0.0;0.0;;;0.0;0.0;445.0;10;5;3;5;78.738;10980;14306;10845
+scn_few-loose_seed4_P3_pl5.xlsx;medium;base;ok;optimal;1.414;;;;78.738;0.0;0.0;0.0;;0.0;0.0;445.0;10;5;3;5;78.738;11140;14946;11005
+scn_few-loose_seed4_P3_pl5.xlsx;hard;base;ok;optimal;1.491;;;;78.738;0.0;0.0;0.0;0.0;0.0;0.0;445.0;10;5;3;5;78.738;11145;14951;11010
+scn_few-loose_seed5_P3_pl5.xlsx;soft12;base;ok;optimal;1.431;;;;75.523;0.0;0.0;;;0.0;0.0;430.0;9;5;3;5;75.523;9999;13039;9882
+scn_few-loose_seed5_P3_pl5.xlsx;soft;base;ok;optimal;1.276;;;;75.523;0.0;0.0;;;0.0;0.0;430.0;9;5;3;5;75.523;10005;13042;9882
+scn_few-loose_seed5_P3_pl5.xlsx;medium;base;ok;optimal;1.321;;;;75.523;0.0;0.0;0.0;;0.0;0.0;430.0;9;5;3;5;75.523;10125;13522;10002
+scn_few-loose_seed5_P3_pl5.xlsx;hard;base;ok;optimal;1.365;;;;75.523;0.0;0.0;0.0;0.0;0.0;0.0;430.0;9;5;3;5;75.523;10130;13527;10007
+scn_few-loose_seed6_P3_pl5.xlsx;soft12;base;ok;optimal;1.701;;;;84.271;0.0;0.0;;;0.0;0.0;475.0;11;5;3;5;84.271;12346;16061;12205
+scn_few-loose_seed6_P3_pl5.xlsx;soft;base;ok;optimal;2.357;;;;84.271;0.0;0.0;;;0.0;0.0;475.0;11;5;3;5;84.271;12352;16064;12205
+scn_few-loose_seed6_P3_pl5.xlsx;medium;base;ok;optimal;1.735;;;;84.271;0.0;0.0;0.0;;0.0;0.0;475.0;11;5;3;5;84.271;12547;16844;12400
+scn_few-loose_seed6_P3_pl5.xlsx;hard;base;ok;optimal;2.747;;;;84.271;0.0;0.0;0.0;0.0;0.0;0.0;475.0;11;5;3;5;84.271;12552;16849;12405
+scn_few-loose_seed7_P3_pl5.xlsx;soft12;base;ok;optimal;2.591;;;;74.691;0.0;0.0;;;0.0;0.0;425.0;11;5;3;5;74.691;11196;14661;11055
+scn_few-loose_seed7_P3_pl5.xlsx;soft;base;ok;optimal;2.735;;;;74.691;0.0;0.0;;;0.0;0.0;425.0;11;5;3;5;74.691;11202;14664;11055
+scn_few-loose_seed7_P3_pl5.xlsx;medium;base;ok;optimal;2.659;;;;74.691;0.0;0.0;0.0;;0.0;0.0;425.0;11;5;3;5;74.691;11402;15464;11255
+scn_few-loose_seed7_P3_pl5.xlsx;hard;base;ok;optimal;2.514;;;;74.691;0.0;0.0;0.0;0.0;0.0;0.0;425.0;11;5;3;5;74.691;11407;15469;11260
+scn_few-loose_seed8_P3_pl5.xlsx;soft12;base;ok;optimal;2.143;;;;69.467;0.0;0.0;;;0.0;0.0;400.0;9;5;3;5;69.467;9369;12259;9252
+scn_few-loose_seed8_P3_pl5.xlsx;soft;base;ok;optimal;3.158;;;;69.467;0.0;0.0;;;0.0;0.0;400.0;9;5;3;5;69.467;9375;12262;9252
+scn_few-loose_seed8_P3_pl5.xlsx;medium;base;ok;optimal;2.156;;;;69.467;0.0;0.0;0.0;;0.0;0.0;400.0;9;5;3;5;69.467;9490;12722;9367
+scn_few-loose_seed8_P3_pl5.xlsx;hard;base;ok;optimal;1.951;;;;69.467;0.0;0.0;0.0;0.0;0.0;0.0;400.0;9;5;3;5;69.467;9495;12727;9372
+scn_few-loose_seed9_P3_pl5.xlsx;soft12;base;ok;optimal;2.992;;;;83.15;0.0;0.0;;;0.0;0.0;470.0;12;5;3;5;83.15;12960;16908;12807
+scn_few-loose_seed9_P3_pl5.xlsx;soft;base;ok;optimal;2.719;;;;83.15;0.0;0.0;;;0.0;0.0;470.0;12;5;3;5;83.15;12966;16911;12807
+scn_few-loose_seed9_P3_pl5.xlsx;medium;base;ok;optimal;3.091;;;;83.15;0.0;0.0;0.0;;0.0;0.0;470.0;12;5;3;5;83.15;13201;17851;13042
+scn_few-loose_seed9_P3_pl5.xlsx;hard;base;ok;optimal;3.309;;;;83.15;0.0;0.0;0.0;0.0;0.0;0.0;470.0;12;5;3;5;83.15;13206;17856;13047
+scn_few-tight_seed10_P2_pl5.xlsx;soft12;base;ok;optimal;5.723;;;;13.237.099.999.999.900;0.0;0.0;;;0.0;0.0;715.0;19;5;3;5;13.237.099.999.999.900;26274;33869;26037
+scn_few-tight_seed10_P2_pl5.xlsx;soft;base;ok;optimal;4.803;;;;13.237.099.999.999.900;0.0;0.0;;;0.0;0.0;715.0;19;5;3;5;13.237.099.999.999.900;26280;33872;26037
+scn_few-tight_seed10_P2_pl5.xlsx;medium;base;ok;optimal;5.983;;;;13.237.099.999.999.900;0.0;0.0;0.0;;0.0;0.0;715.0;19;5;3;5;13.237.099.999.999.900;26840;36112;26597
+scn_few-tight_seed10_P2_pl5.xlsx;hard;base;ok;optimal;5.634;;;;13.237.099.999.999.900;0.0;0.0;0.0;0.0;0.0;0.0;715.0;19;5;3;5;13.237.099.999.999.900;26845;36117;26602
+scn_few-tight_seed11_P2_pl5.xlsx;soft12;base;ok;optimal;4.518;;;;131.139;0.0;0.0;;;0.0;0.0;710.0;15;5;3;5;131.139;21759;27813;21570
+scn_few-tight_seed11_P2_pl5.xlsx;soft;base;ok;optimal;4.413;;;;131.139;0.0;0.0;;;0.0;0.0;710.0;15;5;3;5;131.139;21765;27816;21570
+scn_few-tight_seed11_P2_pl5.xlsx;medium;base;ok;optimal;6.764;;;;131.139;0.0;0.0;0.0;;0.0;0.0;710.0;15;5;3;5;131.139;22125;29256;21930
+scn_few-tight_seed11_P2_pl5.xlsx;hard;base;ok;optimal;5.769;;;;131.139;0.0;0.0;0.0;0.0;0.0;0.0;710.0;15;5;3;5;131.139;22130;29261;21935
+scn_few-tight_seed12_P2_pl5.xlsx;soft12;base;ok;optimal;5.772;;;;123.971;0.0;0.0;;;0.0;0.0;670.0;15;5;3;5;123.971;20679;26533;20490
+scn_few-tight_seed12_P2_pl5.xlsx;soft;base;ok;optimal;4.678;;;;123.971;0.0;0.0;;;0.0;0.0;670.0;15;5;3;5;123.971;20685;26536;20490
+scn_few-tight_seed12_P2_pl5.xlsx;medium;base;ok;optimal;4.898;;;;123.971;0.0;0.0;0.0;;0.0;0.0;670.0;15;5;3;5;123.971;21045;27976;20850
+scn_few-tight_seed12_P2_pl5.xlsx;hard;base;ok;optimal;5.107;;;;123.971;0.0;0.0;0.0;0.0;0.0;0.0;670.0;15;5;3;5;123.971;21050;27981;20855
+scn_few-tight_seed1_P2_pl5.xlsx;soft12;base;ok;optimal;4.738;;;;117.873;0.0;0.0;;;0.0;0.0;640.0;14;5;3;5;117.873;18904;24284;18727
+scn_few-tight_seed1_P2_pl5.xlsx;soft;base;ok;optimal;5.65;;;;117.873;0.0;0.0;;;0.0;0.0;640.0;14;5;3;5;117.873;18910;24287;18727
+scn_few-tight_seed1_P2_pl5.xlsx;medium;base;ok;optimal;5.45;;;;117.873;0.0;0.0;0.0;;0.0;0.0;640.0;14;5;3;5;117.873;19210;25487;19027
+scn_few-tight_seed1_P2_pl5.xlsx;hard;base;ok;optimal;4.816;;;;117.873;0.0;0.0;0.0;0.0;0.0;0.0;640.0;14;5;3;5;117.873;19215;25492;19032
+scn_few-tight_seed2_P2_pl5.xlsx;soft12;base;ok;optimal;5.41;;;;126.628;0.0;0.0;;;0.0;0.0;685.0;16;5;3;5;126.628;22116;28391;21915
+scn_few-tight_seed2_P2_pl5.xlsx;soft;base;ok;optimal;4.979;;;;126.628;0.0;0.0;;;0.0;0.0;685.0;16;5;3;5;126.628;22122;28394;21915
+scn_few-tight_seed2_P2_pl5.xlsx;medium;base;ok;optimal;5.457;;;;126.628;0.0;0.0;0.0;;0.0;0.0;685.0;16;5;3;5;126.628;22542;30074;22335
+scn_few-tight_seed2_P2_pl5.xlsx;hard;base;ok;optimal;5.435;;;;126.628;0.0;0.0;0.0;0.0;0.0;0.0;685.0;16;5;3;5;126.628;22547;30079;22340
+scn_few-tight_seed3_P2_pl5.xlsx;soft12;base;ok;optimal;3.345;;;;10.839.099.999.999.900;0.0;0.0;;;0.0;0.0;595.0;13;5;3;5;10.839.099.999.999.900;16836;21689;16671
+scn_few-tight_seed3_P2_pl5.xlsx;soft;base;ok;optimal;3.705;;;;10.839.099.999.999.900;0.0;0.0;;;0.0;0.0;595.0;13;5;3;5;10.839.099.999.999.900;16842;21692;16671
+scn_few-tight_seed3_P2_pl5.xlsx;medium;base;ok;optimal;3.992;;;;10.839.099.999.999.900;0.0;0.0;0.0;;0.0;0.0;595.0;13;5;3;5;10.839.099.999.999.900;17102;22732;16931
+scn_few-tight_seed3_P2_pl5.xlsx;hard;base;ok;optimal;4.078;;;;10.839.099.999.999.900;0.0;0.0;0.0;0.0;0.0;0.0;595.0;13;5;3;5;10.839.099.999.999.900;17107;22737;16936
+scn_few-tight_seed4_P2_pl5.xlsx;soft12;base;ok;optimal;5.327;;;;128.178;0.0;0.0;;;0.0;0.0;695.0;17;5;3;5;128.178;23460;30153;23247
+scn_few-tight_seed4_P2_pl5.xlsx;soft;base;ok;optimal;6.099;;;;128.178;0.0;0.0;;;0.0;0.0;695.0;17;5;3;5;128.178;23466;30156;23247
+scn_few-tight_seed4_P2_pl5.xlsx;medium;base;ok;optimal;6.955;;;;128.178;0.0;0.0;0.0;;0.0;0.0;695.0;17;5;3;5;128.178;23896;31876;23677
+scn_few-tight_seed4_P2_pl5.xlsx;hard;base;ok;optimal;5.704;;;;128.178;0.0;0.0;0.0;0.0;0.0;0.0;695.0;17;5;3;5;128.178;23901;31881;23682
+scn_few-tight_seed5_P2_pl5.xlsx;soft12;base;ok;optimal;4.928;;;;119.024;0.0;0.0;;;0.0;0.0;650.0;16;5;3;5;119.024;21136;27236;20935
+scn_few-tight_seed5_P2_pl5.xlsx;soft;base;ok;optimal;4.35;;;;119.024;0.0;0.0;;;0.0;0.0;650.0;16;5;3;5;119.024;21142;27239;20935
+scn_few-tight_seed5_P2_pl5.xlsx;medium;base;ok;optimal;2.793;;;;119.024;0.0;0.0;0.0;;0.0;0.0;650.0;16;5;3;5;119.024;21522;28759;21315
+scn_few-tight_seed5_P2_pl5.xlsx;hard;base;ok;optimal;3.127;;;;119.024;0.0;0.0;0.0;0.0;0.0;0.0;650.0;16;5;3;5;119.024;21527;28764;21320
+scn_few-tight_seed6_P2_pl5.xlsx;soft12;base;ok;optimal;3.347;;;;129.666;0.0;0.0;;;0.0;0.0;700.0;15;5;3;5;129.666;21489;27493;21300
+scn_few-tight_seed6_P2_pl5.xlsx;soft;base;ok;optimal;4.366;;;;129.666;0.0;0.0;;;0.0;0.0;700.0;15;5;3;5;129.666;21495;27496;21300
+scn_few-tight_seed6_P2_pl5.xlsx;medium;base;ok;optimal;3.263;;;;129.666;0.0;0.0;0.0;;0.0;0.0;700.0;15;5;3;5;129.666;21850;28916;21655
+scn_few-tight_seed6_P2_pl5.xlsx;hard;base;ok;optimal;2.671;;;;129.666;0.0;0.0;0.0;0.0;0.0;0.0;700.0;15;5;3;5;129.666;21855;28921;21660
+scn_few-tight_seed7_P2_pl5.xlsx;soft12;base;ok;optimal;2.529;;;;116.651;0.0;0.0;;;0.0;0.0;635.0;16;5;3;5;116.651;20716;26741;20515
+scn_few-tight_seed7_P2_pl5.xlsx;soft;base;ok;optimal;2.844;;;;116.651;0.0;0.0;;;0.0;0.0;635.0;16;5;3;5;116.651;20722;26744;20515
+scn_few-tight_seed7_P2_pl5.xlsx;medium;base;ok;optimal;4.143;;;;116.651;0.0;0.0;0.0;;0.0;0.0;635.0;16;5;3;5;116.651;21102;28264;20895
+scn_few-tight_seed7_P2_pl5.xlsx;hard;base;ok;optimal;5.011;;;;116.651;0.0;0.0;0.0;0.0;0.0;0.0;635.0;16;5;3;5;116.651;21107;28269;20900
+scn_few-tight_seed8_P2_pl5.xlsx;soft12;base;ok;optimal;4.841;;;;12.505.499.999.999.900;0.0;0.0;;;0.0;0.0;680.0;16;5;3;5;12.505.499.999.999.900;21976;28226;21775
+scn_few-tight_seed8_P2_pl5.xlsx;soft;base;ok;optimal;4.135;;;;12.505.499.999.999.900;0.0;0.0;;;0.0;0.0;680.0;16;5;3;5;12.505.499.999.999.900;21982;28229;21775
+scn_few-tight_seed8_P2_pl5.xlsx;medium;base;ok;optimal;4.689;;;;12.505.499.999.999.900;0.0;0.0;0.0;;0.0;0.0;680.0;16;5;3;5;12.505.499.999.999.900;22387;29849;22180
+scn_few-tight_seed8_P2_pl5.xlsx;hard;base;ok;optimal;4.796;;;;12.505.499.999.999.900;0.0;0.0;0.0;0.0;0.0;0.0;680.0;16;5;3;5;12.505.499.999.999.900;22392;29854;22185
+scn_few-tight_seed9_P2_pl5.xlsx;soft12;base;ok;optimal;3.585;;;;112.346;0.0;0.0;;;0.0;0.0;615.0;13;5;3;5;112.346;17336;22289;17171
+scn_few-tight_seed9_P2_pl5.xlsx;soft;base;ok;optimal;4.443;;;;112.346;0.0;0.0;;;0.0;0.0;615.0;13;5;3;5;112.346;17342;22292;17171
+scn_few-tight_seed9_P2_pl5.xlsx;medium;base;ok;optimal;4.77;;;;112.346;0.0;0.0;0.0;;0.0;0.0;615.0;13;5;3;5;112.346;17602;23332;17431
+scn_few-tight_seed9_P2_pl5.xlsx;hard;base;ok;optimal;3.825;;;;112.346;0.0;0.0;0.0;0.0;0.0;0.0;615.0;13;5;3;5;112.346;17607;23337;17436
+scn_heavy-tight_seed1_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed1_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed1_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed1_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed2_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed2_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed2_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed2_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed3_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed3_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed3_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed3_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed4_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed4_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed4_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed4_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed5_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed5_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed5_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed5_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed6_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed6_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed6_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed6_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed7_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed7_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed7_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed7_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed8_P4_pl30.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed8_P4_pl30.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed8_P4_pl30.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_heavy-tight_seed8_P4_pl30.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed10_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed10_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed10_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed10_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed11_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed11_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed11_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed11_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed12_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed12_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed12_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed12_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed1_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed1_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed1_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed1_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed2_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed2_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed2_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed2_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed3_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed3_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed3_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed3_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed4_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed4_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed4_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed4_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed5_P5_pl20.xlsx;soft12;base;ok;optimal;29.515;;;;84.573;0.0;0.0;;;0.0;0.0;1900.0;35;20;6;5;84.573;51742;74696;51295
+scn_many-medium_seed5_P5_pl20.xlsx;soft;base;ok;optimal;29.57;;;;84.573;0.0;0.0;;;0.0;0.0;1900.0;35;20;6;5;84.573;51754;74702;51295
+scn_many-medium_seed5_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed5_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed6_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed6_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed6_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed6_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed7_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed7_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed7_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed7_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed8_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed8_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed8_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed8_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed9_P5_pl20.xlsx;soft12;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed9_P5_pl20.xlsx;soft;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed9_P5_pl20.xlsx;medium;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;
+scn_many-medium_seed9_P5_pl20.xlsx;hard;base;ERROR;Cannot load a SolverResults object with bad status: aborted;;;;;;;;;;;;;;;;;;;;

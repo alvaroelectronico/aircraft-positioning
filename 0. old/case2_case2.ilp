@@ -1,0 +1,195 @@
+\ Model unknown_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+\ Signature: 0xdcb3733f8fcdcc61
+Minimize
+ 
+Subject To
+ c_e_c02_SlotJobDuration(slot2_position1_1_2)_:
+   vDurationSlotForJob(slot2_position1_1_2)
+   + vStartSlotForJob(slot2_position1_1_2)
+   - vFinishSlotForJob(slot2_position1_1_2) = 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_1_1)_:
+   vStartSlotForJob(slot1_position2_1_1) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_1_2)_:
+   vStartSlotForJob(slot1_position2_1_2) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_1_3)_:
+   vStartSlotForJob(slot1_position2_1_3) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_2_3)_:
+   vStartSlotForJob(slot1_position2_2_3) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_3_1)_:
+   vStartSlotForJob(slot1_position2_3_1) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_3_2)_:
+   vStartSlotForJob(slot1_position2_3_2) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_3_3)_:
+   vStartSlotForJob(slot1_position2_3_3) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_4_1)_:
+   vStartSlotForJob(slot1_position2_4_1) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_4_2)_:
+   vStartSlotForJob(slot1_position2_4_2) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot1_position2_4_3)_:
+   vStartSlotForJob(slot1_position2_4_3) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_1_1)_:
+   vStartSlotForJob(slot2_position1_1_1) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_1_3)_:
+   vStartSlotForJob(slot2_position1_1_3) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_2_1)_:
+   vStartSlotForJob(slot2_position1_2_1) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_2_2)_:
+   vStartSlotForJob(slot2_position1_2_2) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_2_3)_:
+   vStartSlotForJob(slot2_position1_2_3) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_3_2)_:
+   vStartSlotForJob(slot2_position1_3_2) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_3_3)_:
+   vStartSlotForJob(slot2_position1_3_3) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_4_1)_:
+   vStartSlotForJob(slot2_position1_4_1) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_4_2)_:
+   vStartSlotForJob(slot2_position1_4_2) <= 0
+ c_u_c03_NullStartTimeIfNotInSlot(slot2_position1_4_3)_:
+   vStartSlotForJob(slot2_position1_4_3) <= 0
+ c_u_c04_NullFinishTimeIfNotInSlot(slot1_position2_2_2)_:
+   vFinishSlotForJob(slot1_position2_2_2) <= 0
+ c_u_c04_NullFinishTimeIfNotInSlot(slot2_position1_1_2)_:
+   vFinishSlotForJob(slot2_position1_1_2) <= 0
+ c_u_c04_NullFinishTimeIfNotInSlot(slot2_position2_2_2)_:
+   vFinishSlotForJob(slot2_position2_2_2) <= 62.4
+ c_u_c06_StartJob_upper(slot0_position2_3_2)_:
+   - vStartSlotForJob(slot0_position2_3_2) + vStartJob(3_2) <= 0
+ c_u_c06_StartJob_upper(slot1_position1_1_2)_:
+   - vStartSlotForJob(slot1_position1_1_2) + vStartJob(1_2) <= 0
+ c_u_c06_StartJob_upper(slot2_position2_2_2)_:
+   - vStartSlotForJob(slot2_position2_2_2) + vStartJob(2_2) <= 0
+ c_u_c07_FinishJob_lower(slot0_position1_1_1)_:
+   vFinishSlotForJob(slot0_position1_1_1) - vFinishJob(1_1) <= 0
+ c_u_c07_FinishJob_lower(slot1_position2_2_1)_:
+   vFinishSlotForJob(slot1_position2_2_1) - vFinishJob(2_1) <= 0
+ c_u_c07_FinishJob_lower(slot2_position1_3_1)_:
+   vFinishSlotForJob(slot2_position1_3_1) - vFinishJob(3_1) <= 0
+ c_e_c11_SlotStartTime(slot1_position2)_: vStartSlot(slot1_position2)
+   - vStartSlotForJob(slot1_position2_1_1)
+   - vStartSlotForJob(slot1_position2_1_2)
+   - vStartSlotForJob(slot1_position2_1_3)
+   - vStartSlotForJob(slot1_position2_2_1)
+   - vStartSlotForJob(slot1_position2_2_2)
+   - vStartSlotForJob(slot1_position2_2_3)
+   - vStartSlotForJob(slot1_position2_3_1)
+   - vStartSlotForJob(slot1_position2_3_2)
+   - vStartSlotForJob(slot1_position2_3_3)
+   - vStartSlotForJob(slot1_position2_4_1)
+   - vStartSlotForJob(slot1_position2_4_2)
+   - vStartSlotForJob(slot1_position2_4_3) = 0
+ c_e_c11_SlotStartTime(slot2_position1)_: vStartSlot(slot2_position1)
+   - vStartSlotForJob(slot2_position1_1_1)
+   - vStartSlotForJob(slot2_position1_1_2)
+   - vStartSlotForJob(slot2_position1_1_3)
+   - vStartSlotForJob(slot2_position1_2_1)
+   - vStartSlotForJob(slot2_position1_2_2)
+   - vStartSlotForJob(slot2_position1_2_3)
+   - vStartSlotForJob(slot2_position1_3_1)
+   - vStartSlotForJob(slot2_position1_3_2)
+   - vStartSlotForJob(slot2_position1_3_3)
+   - vStartSlotForJob(slot2_position1_4_1)
+   - vStartSlotForJob(slot2_position1_4_2)
+   - vStartSlotForJob(slot2_position1_4_3) = 0
+ c_e_c12_SlotFinishTime(slot0_position2)_: vFinishSlot(slot0_position2)
+   - vFinishSlotForJob(slot0_position2_1_1)
+   - vFinishSlotForJob(slot0_position2_1_2)
+   - vFinishSlotForJob(slot0_position2_1_3)
+   - vFinishSlotForJob(slot0_position2_2_1)
+   - vFinishSlotForJob(slot0_position2_2_2)
+   - vFinishSlotForJob(slot0_position2_2_3)
+   - vFinishSlotForJob(slot0_position2_3_1)
+   - vFinishSlotForJob(slot0_position2_3_2)
+   - vFinishSlotForJob(slot0_position2_3_3)
+   - vFinishSlotForJob(slot0_position2_4_1)
+   - vFinishSlotForJob(slot0_position2_4_2)
+   - vFinishSlotForJob(slot0_position2_4_3) = 0
+ c_e_c12_SlotFinishTime(slot1_position1)_: vFinishSlot(slot1_position1)
+   - vFinishSlotForJob(slot1_position1_1_1)
+   - vFinishSlotForJob(slot1_position1_1_2)
+   - vFinishSlotForJob(slot1_position1_1_3)
+   - vFinishSlotForJob(slot1_position1_2_1)
+   - vFinishSlotForJob(slot1_position1_2_2)
+   - vFinishSlotForJob(slot1_position1_2_3)
+   - vFinishSlotForJob(slot1_position1_3_1)
+   - vFinishSlotForJob(slot1_position1_3_2)
+   - vFinishSlotForJob(slot1_position1_3_3)
+   - vFinishSlotForJob(slot1_position1_4_1)
+   - vFinishSlotForJob(slot1_position1_4_2)
+   - vFinishSlotForJob(slot1_position1_4_3) = 0
+ c_u_c13_SlotSequence(slot0_slot1_position2)_:
+   - vStartSlot(slot1_position2) + vFinishSlot(slot0_position2) <= 0
+ c_u_c13_SlotSequence(slot1_slot2_position1)_:
+   - vStartSlot(slot2_position1) + vFinishSlot(slot1_position1) <= 0
+ c_u_c14_JobSequence(1_1_1_2)_: - vStartJob(1_2) + vFinishJob(1_1) <= 0
+ c_u_c14_JobSequence(2_1_2_2)_: - vStartJob(2_2) + vFinishJob(2_1) <= 0
+ c_u_c14_JobSequence(3_1_3_2)_: - vStartJob(3_2) + vFinishJob(3_1) <= 0
+ c_e_c17_DurationIfNotAssigned(slot0_position1_1_1)_:
+   - vStartSlotForJob(slot0_position1_1_1)
+   + vFinishSlotForJob(slot0_position1_1_1) = 3
+ c_e_c17_DurationIfNotAssigned(slot0_position2_3_2)_:
+   - vStartSlotForJob(slot0_position2_3_2)
+   + vFinishSlotForJob(slot0_position2_3_2) = 37
+ c_e_c17_DurationIfNotAssigned(slot1_position1_1_2)_:
+   - vStartSlotForJob(slot1_position1_1_2)
+   + vFinishSlotForJob(slot1_position1_1_2) = 46
+ c_e_c17_DurationIfNotAssigned(slot1_position2_2_1)_:
+   - vStartSlotForJob(slot1_position2_2_1)
+   + vFinishSlotForJob(slot1_position2_2_1) = 3
+ c_e_c17_DurationIfNotAssigned(slot1_position2_2_2)_:
+   - vStartSlotForJob(slot1_position2_2_2)
+   + vFinishSlotForJob(slot1_position2_2_2) = 0
+ c_e_c17_DurationIfNotAssigned(slot2_position1_3_1)_:
+   - vStartSlotForJob(slot2_position1_3_1)
+   + vFinishSlotForJob(slot2_position1_3_1) = 3
+ c_e_c17_DurationIfNotAssigned(slot2_position2_2_2)_:
+   - vStartSlotForJob(slot2_position2_2_2)
+   + vFinishSlotForJob(slot2_position2_2_2) = 26
+Bounds
+ vStartSlot(slot1_position2) free
+ vStartSlot(slot2_position1) free
+ vFinishSlot(slot0_position2) free
+ vFinishSlot(slot1_position1) free
+ vStartSlotForJob(slot0_position2_3_2) free
+ vStartSlotForJob(slot1_position1_1_2) free
+ vStartSlotForJob(slot1_position2_1_1) free
+ vStartSlotForJob(slot1_position2_1_2) free
+ vStartSlotForJob(slot1_position2_1_3) free
+ vStartSlotForJob(slot1_position2_2_1) free
+ vStartSlotForJob(slot1_position2_2_2) free
+ vStartSlotForJob(slot1_position2_2_3) free
+ vStartSlotForJob(slot1_position2_3_1) free
+ vStartSlotForJob(slot1_position2_3_2) free
+ vStartSlotForJob(slot1_position2_3_3) free
+ vStartSlotForJob(slot1_position2_4_1) free
+ vStartSlotForJob(slot1_position2_4_2) free
+ vStartSlotForJob(slot1_position2_4_3) free
+ vStartSlotForJob(slot2_position1_1_1) free
+ vStartSlotForJob(slot2_position1_1_2) free
+ vStartSlotForJob(slot2_position1_1_3) free
+ vStartSlotForJob(slot2_position1_2_1) free
+ vStartSlotForJob(slot2_position1_2_2) free
+ vStartSlotForJob(slot2_position1_2_3) free
+ vStartSlotForJob(slot2_position1_3_1) free
+ vStartSlotForJob(slot2_position1_3_2) free
+ vStartSlotForJob(slot2_position1_3_3) free
+ vStartSlotForJob(slot2_position1_4_1) free
+ vStartSlotForJob(slot2_position1_4_2) free
+ vStartSlotForJob(slot2_position1_4_3) free
+ vStartSlotForJob(slot2_position2_2_2) free
+ vFinishSlotForJob(slot0_position1_1_1) free
+ vFinishSlotForJob(slot0_position2_3_2) free
+ vFinishSlotForJob(slot1_position1_1_2) free
+ vFinishSlotForJob(slot1_position2_2_1) free
+ vFinishSlotForJob(slot1_position2_2_2) free
+ vFinishSlotForJob(slot2_position1_1_2) free
+ vFinishSlotForJob(slot2_position1_3_1) free
+ vFinishSlotForJob(slot2_position2_2_2) free
+ vStartJob(1_2) free
+ vStartJob(2_2) free
+ vStartJob(3_2) free
+ vFinishJob(1_1) free
+ vFinishJob(2_1) free
+ vFinishJob(3_1) free
+End

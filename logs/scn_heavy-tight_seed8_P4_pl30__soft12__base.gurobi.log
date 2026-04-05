@@ -1,0 +1,172 @@
+
+Gurobi 13.0.1 (win64) logging started Sun Feb  8 21:25:33 2026
+
+Set parameter LogFile to value "logs\scn_heavy-tight_seed8_P4_pl30__soft12__base.gurobi.log"
+Gurobi Optimizer version 13.0.1 build v13.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Non-default parameters:
+TimeLimit  300
+MIPGap  0.02
+
+Optimize a model with 373114 rows, 253884 columns and 1448457 nonzeros (Min)
+Model fingerprint: 0x75765b00
+Model has 166149 linear objective coefficients
+Variable types: 1107 continuous, 252777 integer (252777 binary)
+Coefficient statistics:
+  Matrix range     [3e-02, 3e+02]
+  Objective range  [8e-01, 1e+00]
+  Bounds range     [1e+00, 2e+02]
+  RHS range        [1e+00, 1e+03]
+
+Presolve removed 263284 rows and 179125 columns
+Presolve time: 2.24s
+Presolved: 109830 rows, 74759 columns, 416362 nonzeros
+Variable types: 85 continuous, 74674 integer (74674 binary)
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+Concurrent spin time: 0.01s
+
+Solved with primal simplex
+
+Root relaxation: infeasible, 1710 iterations, 0.50 seconds (0.43 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 infeasible    0               - infeasible      -     -    3s
+
+Explored 1 nodes (1737 simplex iterations) in 3.10 seconds (4.44 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Model is infeasible
+Best objective -, best bound -, gap -
+
+Gurobi 13.0.1 (win64) logging started Sun Feb  8 21:40:36 2026
+
+Set parameter LogFile to value "logs\scn_heavy-tight_seed8_P4_pl30__soft12__base.gurobi.log"
+Gurobi Optimizer version 13.0.1 build v13.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Non-default parameters:
+TimeLimit  300
+MIPGap  0.02
+
+Optimize a model with 373114 rows, 253884 columns and 1448457 nonzeros (Min)
+Model fingerprint: 0x75765b00
+Model has 166149 linear objective coefficients
+Variable types: 1107 continuous, 252777 integer (252777 binary)
+Coefficient statistics:
+  Matrix range     [3e-02, 3e+02]
+  Objective range  [8e-01, 1e+00]
+  Bounds range     [1e+00, 2e+02]
+  RHS range        [1e+00, 1e+03]
+
+Presolve removed 263284 rows and 179125 columns
+Presolve time: 4.16s
+Presolved: 109830 rows, 74759 columns, 416362 nonzeros
+Variable types: 85 continuous, 74674 integer (74674 binary)
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    1.9901700e+02   9.350000e+01   5.205000e+08      5s
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    1.9901700e+02   8.300000e+01   4.150000e+08      5s
+Concurrent spin time: 0.03s
+
+Solved with primal simplex
+
+Root relaxation: infeasible, 1710 iterations, 0.87 seconds (0.43 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 infeasible    0               - infeasible      -     -    5s
+
+Explored 1 nodes (1737 simplex iterations) in 5.63 seconds (4.44 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Model is infeasible
+Best objective -, best bound -, gap -
+
+Gurobi 13.0.1 (win64) logging started Sun Feb  8 21:47:07 2026
+
+Set parameter LogFile to value "logs\scn_heavy-tight_seed8_P4_pl30__soft12__base.gurobi.log"
+Gurobi Optimizer version 13.0.1 build v13.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Non-default parameters:
+TimeLimit  300
+MIPGap  0.02
+
+Optimize a model with 373114 rows, 253884 columns and 1448457 nonzeros (Min)
+Model fingerprint: 0x75765b00
+Model has 166149 linear objective coefficients
+Variable types: 1107 continuous, 252777 integer (252777 binary)
+Coefficient statistics:
+  Matrix range     [3e-02, 3e+02]
+  Objective range  [8e-01, 1e+00]
+  Bounds range     [1e+00, 2e+02]
+  RHS range        [1e+00, 1e+03]
+
+Presolve removed 263284 rows and 179125 columns
+Presolve time: 2.19s
+Presolved: 109830 rows, 74759 columns, 416362 nonzeros
+Variable types: 85 continuous, 74674 integer (74674 binary)
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing primal log only...
+
+Concurrent spin time: 0.01s
+
+Solved with primal simplex
+
+Root relaxation: infeasible, 1710 iterations, 0.46 seconds (0.43 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 infeasible    0               - infeasible      -     -    2s
+
+Explored 1 nodes (1737 simplex iterations) in 2.98 seconds (4.44 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Model is infeasible
+Best objective -, best bound -, gap -

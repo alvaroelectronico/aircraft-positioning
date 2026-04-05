@@ -1,0 +1,6 @@
+scenario_type,window_tightness,runs,feasible_runs,feasible_rate,time_p50_s,time_p90_s,gap_median,gap_p90,cases_with_delay,cases_with_viol_pos,cases_with_switches,cases_with_pos_slack,avg_planes,avg_jobs
+few,loose,144.0,144.0,1.0,0.6114999999999999,1072.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0,10.5
+few,tight,144.0,108.0,0.75,0.9375,1436.0000000000011,0.0,0.9999999999999001,0.0,0.0,0.0,0.0,5.0,15.416666666666666
+many,mix,35.0,0.0,0.0,198672.0,419772.8,,,0.0,0.0,0.0,0.0,20.0,43.2
+many,tight,72.0,60.0,0.8333333333333334,3845.0,13999.699999999995,0.0,0.0,0.0,0.0,24.0,6.0,15.0,30.5
+unknown,tight,96.0,0.0,0.0,22732.5,27999.0,,,0.0,0.0,0.0,0.0,30.0,90.5
