@@ -49,7 +49,7 @@ GAP = 0.05
 
 # === PARÁMETROS DE ENTRADA ===
 CASE_XLSX = "case_26.xlsx"   # <-- cámbialo aquí
-CASE_SHEET = "case_26"           # <-- una sola hoja 
+CASE_SHEET = "case_26"           # <-- una sola hoja
 PLANNING_START = "2024-11-17" # origen calendario; puede ser None o "YYYY-MM-DD"
 
 
@@ -433,7 +433,7 @@ def build_model(d,
     H = float(d['H'])
 
     # SLOTS (solo para métricas)
-    SLOTS = int(min(max(1, math.ceil(H) + 10), 200))
+    SLOTS = int(min(max(1, math.ceil(H) + 10), 400))
     m.S = RangeSet(1, SLOTS)
 
     # Parámetros
@@ -616,7 +616,11 @@ def build_model(d,
 
     # Links fuertes (1.1 y 1.2) entre z y y
     if mode in {"soft12", "soft", "medium", "hard"}:
-        m.c_link_yz = Constraint(m.J, m.P, rule=lambda mdl, j, p: mdl.y[j, p] <= mdl.z[mdl.clientOf[j], p])
+        def _link_yz(mdl, j, p):
+            c = int(value(mdl.clientOf[j]))  # <- cast robusto
+            return mdl.y[j, p] <= mdl.z[c, p]
+
+        m.c_link_yz = Constraint(m.J, m.P, rule=_link_yz)
 
         # sum_{j de c} y[j,p] >= z[c,p]   y   sum_{j de c} y[j,p] <= M_cp * z[c,p]
         m.c_z_le_sumy  = ConstraintList()
