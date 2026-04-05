@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Datos de salida locales (si algún script los genera dentro del repo)
+data/output/
+
+# Outputs y escenarios generados en raíz (legacy, por compatibilidad)
+solution_*.csv
+report_*.csv
+results_batch*.csv
+results_batch*.xlsx
+results_old*.csv
+results_old*.xlsx
+results_suite_*.csv
+results_suite_*.xlsx
+*.gurobi.log
+/scn_*.xlsx
+/scenarios.zip
+/escenarios.bat
+/schedule_enhanced.html
+
+# Artefactos de solver
+*.mps
+*.lp
+case_conflict*
+
+# Visualizaciones generadas
+schedule_*.html
+gantt_*.html
+
+# Excel temporales (lock files de Office)
+~$*.xlsx
+~$*.csv
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Editor backup files
+*.py~
+*~
+
+# Directorios de datos generados (solo en la raíz del repo, no dentro de src/)
+/scenarios/
+/scenarios_suite/
+/results/
+/results_pro/
+/results_analysis/
+/logs/
+/old logs/

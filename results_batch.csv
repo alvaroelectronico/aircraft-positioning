@@ -1,6 +1,0 @@
-scenario,mode,preset,status,termination,solve_time_s,mipgap,best_bound,objective,n_constraints,n_vars,n_bin,n_int,n_cont,Tmax,client_delay_sum,viol_C_sum,client_switches,positions_slack_used,switches_slot_sum,presence_sum,idle_sum,n_jobs,n_planes,n_clients,n_positions,H
-case_26.xlsx,soft12,base,ok,optimal,11.031,,11659.0,11896.0,235348,176049,175705,0,344,1496.0,0.0,0.0,,,0.0,10400.0,0.0,26,26,5,5,1518.0
-scn_few-loose_seed1_P3_pl5.xlsx,soft12,base,ok,optimal,0.626,,395.91200000000003,395.91200000000003,13718,10320,10167,0,153,35.912000000000006,0.0,0.0,,,0.0,0.0,360.0,12,5,3,5,61.065
-scn_heavy-tight_seed8_P4_pl30.xlsx,soft12,base,warning,infeasible,15.008,,inf,inf,373114,253884,252777,0,1107,0.0,0.0,0.0,,,0.0,0.0,0.0,89,30,8,5,202.101
-scn_many-medium_seed1_P5_pl20.xlsx,soft12,base,ERROR,Cannot load a SolverResults object with bad status: aborted,,,,,,,,,,,,,,,,,,,,,,
-scn_many-medium_seed9_P5_pl20.xlsx,soft12,base,ERROR,Cannot load a SolverResults object with bad status: aborted,,,,,,,,,,,,,,,,,,,,,,
