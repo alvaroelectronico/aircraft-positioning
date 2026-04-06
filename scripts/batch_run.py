@@ -3,40 +3,78 @@
 """
 Batch Runner para el modelo aircraft-positioning.
 
-- Itera sobre ficheros .xlsx (single-sheet "case") generados por tu scenario_maker.
-- Cruza modos de política (soft12, soft, medium, hard) con presets del solver (base, fast, feasible).
-- Lanza el solver con timelimit/gap y captura KPIs de rendimiento.
-- Escribe un CSV con una fila por (escenario, modo, preset).
-- (NUEVO) Permite ejecutar solo una lista explícita de escenarios y genera un LogFile de Gurobi por corrida.
+Propósito
+---------
+Automatizar un estudio experimental: para cada escenario Excel, cada modo de
+política de cliente y cada preset del solver, construye el MIP, lo resuelve y
+registra métricas en CSV más un log detallado del solver (Gurobi).
 
-Requisitos en tu módulo de modelo (p.ej. model_func1_sh.py):
-  - variable global POSITIONS (lista de strings) -> la inyectamos desde CLI (--n-positions o --positions)
-  - función read_case_single_sheet(xlsx_path, sheet_name="case", planning_start=...)
-  - función build_model(d, client_pos_policy, w_client_pos, wms)
+Flujo típico
+------------
+1. Descubre o recibe la lista de ficheros .xlsx (hoja única ``case`` por defecto).
+2. Importa dinámicamente el módulo del modelo (``--model-module``).
+3. Opcionalmente inyecta ``POSITIONS`` y ``PLANNING_START`` en ese módulo antes
+   de llamar a ``read_case_single_sheet`` / ``build_model``.
+4. Bucle triple: escenario × modo × preset → ``build_and_solve`` → fila CSV.
+
+Entorno y rutas
+---------------
+- ``AP_DATA_DIR``: raíz de datos; si no existe, se usa el directorio hermano
+  ``aircraft-positioning-data`` respecto al repo. Bajo ese árbol suelen vivir
+  ``input/scenarios_suite``, ``output/results`` y ``output/logs``.
+
+Salida
+------
+- CSV (``results_batch.csv`` o ``--out``): una fila por corrida con estado del
+  solver, tiempos, gap, límites, tamaño del modelo y KPIs específicos del
+  dominio (retrasos, violaciones, cambios de cliente, etc.).
+- Si el solver es Gurobi: un ``.gurobi.log`` por corrida en ``--log-dir``.
+
+Contrato del módulo de modelo (p.ej. ``src.solvers.client_policy``)
+-------------------------------------------------------------------
+- ``POSITIONS`` (lista de str): opcional; se puede fijar desde CLI con
+  ``--positions`` o ``--n-positions``.
+- ``read_case_single_sheet(xlsx_path, sheet_name="case", planning_start=...)``
+  → diccionario/estructura ``d`` consumida por ``build_model``.
+- ``build_model(d, client_pos_policy, w_client_pos, wms)`` → modelo Pyomo ``m``
+  con componentes opcionales que este script intenta leer (``Tmax``, ``J``, ``R``,
+  etc.); si falta un componente, el KPI correspondiente queda ``None``.
 """
 
 import argparse
 import csv
+import os
 import sys
 import time
 import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
+# Raíz del repo: al ejecutar el script desde cualquier cwd, Python debe poder
+# resolver imports como ``src.solvers...`` sin instalar el paquete en modo editable.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 import pyomo.environ as pyo
 import importlib
+
+# Directorio de datos externo. Configurable via variable de entorno AP_DATA_DIR.
+# Por defecto apunta al directorio hermano aircraft-positioning-data.
+_DATA_DIR = Path(os.environ.get("AP_DATA_DIR", str(_REPO_ROOT.parent / "aircraft-positioning-data")))
 
 
 # -----------------------
 # Defaults (customizados para tu TFM)
 # -----------------------
 
+# Shortlist usada cuando NO se pasa ``--no-only-scenarios``: evita barrer todo
+# el directorio de escenarios y acorta iteraciones de prueba / TFM.
 DEFAULT_ONLY_SCENARIOS = [
     "scn_few-loose_seed1_P3_pl5.xlsx",
     "scn_many-medium_seed1_P5_pl20.xlsx",
     "scn_many-medium_seed9_P5_pl20.xlsx",
     "scn_heavy-tight_seed8_P4_pl30.xlsx",
-    "case_26.xlsx",
 ]
 
 
@@ -45,6 +83,12 @@ DEFAULT_ONLY_SCENARIOS = [
 # -----------------------
 
 def parse_positions_arg(positions_csv: Optional[str], n_positions: Optional[int], prefix: str) -> List[str]:
+    """Construye la lista de nombres de posición para inyectar en el módulo del modelo.
+
+    Prioridad: ``positions_csv`` (coma-separada) sobre ``n_positions`` (genera
+    ``prefix1``..``prefixN``). Usado solo si el usuario pasa ``--positions`` o
+    ``--n-positions`` en CLI.
+    """
     if positions_csv:
         return [s.strip() for s in positions_csv.split(",") if s.strip()]
     if n_positions:
@@ -53,6 +97,7 @@ def parse_positions_arg(positions_csv: Optional[str], n_positions: Optional[int]
 
 
 def find_scenarios(scenarios_dir: str, pattern: str) -> List[Path]:
+    """Lista ordenada de ``Path`` que coinciden con ``pattern`` (glob) bajo ``scenarios_dir``."""
     base = Path(scenarios_dir)
     if not base.exists():
         raise FileNotFoundError(f"Scenarios directory not found: {base}")
@@ -60,6 +105,7 @@ def find_scenarios(scenarios_dir: str, pattern: str) -> List[Path]:
 
 
 def solver_factory(name: str):
+    """Crea el solver Pyomo y falla pronto si no está instalado / licenciado."""
     solver = pyo.SolverFactory(name)
     if not solver.available(False):
         raise RuntimeError(f"Solver '{name}' is not available in this environment.")
@@ -77,7 +123,11 @@ def safe_val(v) -> float:
 
 
 def sum_indexed(var_like) -> float:
-    """Suma valores de un IndexedVar sin evaluar los None (evita warnings/errores)."""
+    """Suma valores indexados de Pyomo omitiendo entradas con ``value is None``.
+
+    Intenta primero ``.values()`` (dict-like); si falla, itera por índices. Cualquier
+    excepción devuelve 0.0 — preferible a romper el batch por una variable huérfana.
+    """
     total = 0.0
     try:
         for v in var_like.values():
@@ -138,7 +188,11 @@ def count_model_sizes(m) -> Dict[str, Optional[int]]:
     }
 
 def _extract_solver_mipgap(results) -> Optional[float]:
-    """Intenta extraer el gap del objeto results del solver."""
+    """Intenta extraer el MIP gap del objeto ``results`` de Pyomo.
+
+    Los solvers reportan el gap en sitios distintos según versión y interfaz;
+    se prueba primero ``results.solver`` y luego el primer registro de ``problem``.
+    """
     try:
         g = results.solver.get("gap", None)
         if g is not None:
@@ -158,6 +212,7 @@ def _extract_solver_mipgap(results) -> Optional[float]:
 
 
 def _extract_best_bound(results) -> Optional[float]:
+    """Mejor cota conocida (típicamente dual / LB en minimización según el solver)."""
     try:
         bb = results.solver.get("best_bound", None)
         if bb is not None:
@@ -177,7 +232,10 @@ def _extract_best_bound(results) -> Optional[float]:
 
 
 def objective_from_results(results) -> Optional[float]:
-    """Intenta recuperar el valor del objetivo desde results (sin evaluar el objetivo simbólico)."""
+    """Valor del objetivo reportado por el solver, sin reevaluar la expresión Pyomo en Python.
+
+    Útil cuando el modelo es grande o hay componentes que disparan warnings al acceder al objetivo.
+    """
     try:
         obj = results.solver.get("objective", None)
         if obj is not None:
@@ -198,11 +256,17 @@ def objective_from_results(results) -> Optional[float]:
 
 def apply_preset_options(solver, solver_name: str, preset: str, timelimit: Optional[float], mipgap: Optional[float]):
     """
-    Ajusta opciones del solver según preset. Implementado para Gurobi; otros solvers ignoran lo desconocido.
-    Presets:
-      - base: opciones por defecto + TimeLimit/MIPGap si se pasan
-      - fast: prioriza velocidad (MIPFocus=1, heurísticas algo más activas)
-      - feasible: prioriza factibilidad rápida (MIPFocus=3, heurísticas más altas)
+    Ajusta opciones del solver según preset y aplica TimeLimit / MIP gap.
+
+    Implementación:
+      - Gurobi: nombres de opciones oficiales (``TimeLimit``, ``MIPGap``, etc.).
+      - CPLEX / CBC: claves típicas en la interfaz Pyomo (pueden variar según versión).
+      - Otros: ``timelimit`` / ``mipgap`` genéricos como último recurso.
+
+    Presets (solo amplían ajustes cuando ``solver_name`` es Gurobi):
+      - ``base``: solo límites; sin tocar ``MIPFocus`` ni heurística.
+      - ``fast``: ``MIPFocus=1`` — énfasis en encontrar soluciones incumbentes rápido.
+      - ``feasible``: ``MIPFocus=3`` — énfasis en hallar una factible cuando el modelo es duro.
     """
     sname = solver_name.lower()
     opts = solver.options
@@ -254,6 +318,7 @@ def apply_preset_options(solver, solver_name: str, preset: str, timelimit: Optio
 
 
 def _safe_filename(s: str) -> str:
+    """Nombre de fichero seguro para logs: reemplaza caracteres problemáticos en Windows/Unix."""
     return "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in s)
 
 
@@ -273,7 +338,19 @@ def build_and_solve(model_mod,
                     preset: str,
                     log_file: Optional[Path] = None,
                     tee: bool = False) -> Dict[str, Any]:
-    """Lee datos, construye el modelo, resuelve y devuelve KPIs."""
+    """Pipeline completo de una corrida: leer Excel → Pyomo → solver → dict de KPIs.
+
+    ``mode`` se pasa como ``client_pos_policy`` al constructor del modelo (p.ej.
+    ``soft12``, ``hard``): define cómo se penalizan o relajan asignaciones cliente–posición.
+
+    Las posiciones del hangar vienen del **módulo** (variable global ``POSITIONS``
+    inyectada en ``main`` si el usuario lo pidió), no del Excel; por eso el lector
+    no recibe un argumento ``positions`` explícito aquí.
+
+    Returns:
+        Diccionario listo para fusionar en una fila CSV (sin claves ``scenario``,
+        ``mode``, ``preset``; esas las añade ``main``).
+    """
     # 1) Leer datos del escenario (NO pasar 'positions' al lector)
     d = model_mod.read_case_single_sheet(
         str(xlsx_path),
@@ -294,11 +371,12 @@ def build_and_solve(model_mod,
         log_file.parent.mkdir(parents=True, exist_ok=True)
         solver.options["LogFile"] = str(log_file)
 
-    # Silenciar Pyomo para evitar ruido de evaluación
+    # Tras la resolución, al leer valores de variables, Pyomo puede loguear
+    # advertencias masivas; subimos el umbral solo durante esta corrida.
     logging.getLogger("pyomo.core").setLevel(logging.ERROR)
     logging.getLogger("pyomo").setLevel(logging.ERROR)
 
-    # 4) Resolver y medir tiempo
+    # 4) Resolver y medir tiempo (wall-clock de la llamada a solve, no CPU interna)
     t0 = time.perf_counter()
     results = solver.solve(m, tee=bool(tee))
     t1 = time.perf_counter()
@@ -315,7 +393,9 @@ def build_and_solve(model_mod,
     # 5.1) Tamaño del modelo (Pyomo)
     sizes = count_model_sizes(m)
 
-    # 6) KPIs del modelo (robustos a variables no inicializadas)
+    # 6) KPIs del modelo: cada ``hasattr`` permite modelos que no declaren algún
+    #    bloque (p.ej. sin holgura de posiciones); ``safe_val`` / ``sum_indexed``
+    #    evitan fallar si el solver dejó componentes en None.
     metrics = {
         "status": status,
         "termination": term,
@@ -350,13 +430,17 @@ def build_and_solve(model_mod,
 # -----------------------
 
 def main():
+    """Punto de entrada: parsea CLI, resuelve lista de escenarios, escribe CSV y logs."""
     ap = argparse.ArgumentParser(description="Batch runner for aircraft-positioning scenarios (con logs por corrida).")
-    ap.add_argument("--model-module", type=str, default="model_func1_sh",
-                    help="Nombre del módulo Python del modelo (sin .py).")
+    ap.add_argument("--model-module", type=str, default="src.solvers.client_policy",
+                    help="Nombre del módulo Python del modelo (sin .py). "
+                         "Por defecto: src.solvers.client_policy. "
+                         "Alternativa: src.solvers.standard")
 
     # Aceptar ambos nombres (--scenarios y --scenarios-dir)
-    ap.add_argument("--scenarios-dir", type=str, default=".",
-                    help="Carpeta donde están los .xlsx (por defecto, la actual).")
+    ap.add_argument("--scenarios-dir", type=str,
+                    default=str(_DATA_DIR / "input" / "scenarios_suite"),
+                    help="Carpeta donde están los .xlsx. Por defecto: AP_DATA_DIR/input/scenarios_suite")
     ap.add_argument("--pattern", type=str, default="*.xlsx",
                     help="Patrón glob para seleccionar escenarios (si NO usas --only-scenarios).")
     ap.add_argument("--sheet", type=str, default="case",
@@ -370,8 +454,10 @@ def main():
                     help="Desactiva la shortlist por defecto y usa --pattern para seleccionar escenarios.")
 
     # NUEVO: logs por corrida
-    ap.add_argument("--log-dir", type=str, default="logs",
-                    help="Carpeta donde guardar los logs de Gurobi (uno por corrida).")
+    ap.add_argument("--log-dir", type=str,
+                    default=str(_DATA_DIR / "output" / "logs"),
+                    help="Carpeta donde guardar los logs de Gurobi (uno por corrida). "
+                         "Por defecto: AP_DATA_DIR/output/logs")
     ap.add_argument("--tee", action="store_true",
                     help="Si se activa, imprime salida del solver por pantalla además de guardar log.")
 
@@ -401,20 +487,25 @@ def main():
                     help="Prefijo para generar posiciones con --n-positions.")
 
     # Aceptar --results-dir además de --out
-    ap.add_argument("--results-dir", type=str, default=None,
-                    help="Carpeta donde guardar el CSV (se llamará results_batch.csv).")
+    ap.add_argument("--results-dir", type=str,
+                    default=str(_DATA_DIR / "output" / "results"),
+                    help="Carpeta donde guardar el CSV (se llamará results_batch.csv). "
+                         "Por defecto: AP_DATA_DIR/output/results")
     ap.add_argument("--out", type=str, default=None,
                     help="Ruta del CSV de salida. Si se pasa, tiene prioridad sobre --results-dir.")
 
     args = ap.parse_args()
 
-    # Resolver escenarios dir (aceptar ambos flags)
+    # Carpeta de los .xlsx. El parser define ``--scenarios-dir`` con default; la
+    # expresión ``or args.scenarios`` es heredada por si existiera alias antiguo
+    # (no registrado hoy; en uso normal ``scenarios_dir`` ya viene informado).
     scenarios_dir = args.scenarios_dir or args.scenarios or "scenarios"
 
-    # Importa el módulo del modelo
+    # Import dinámico: el mismo script sirve para ``client_policy``, ``standard``, etc.
     model_mod = importlib.import_module(args.model_module)
 
-    # Inyecta POSITIONS si nos lo piden
+    # ``POSITIONS`` debe existir en el módulo antes de ``build_model`` si el modelo
+    # indexa posiciones por nombre; sin CLI, el módulo usa su valor por defecto.
     if args.positions or args.n_positions:
         pos_list = parse_positions_arg(args.positions, args.n_positions, args.pos_prefix)
         setattr(model_mod, "POSITIONS", pos_list)
@@ -423,7 +514,8 @@ def main():
     if not hasattr(model_mod, "PLANNING_START"):
         setattr(model_mod, "PLANNING_START", None)
 
-    # Escenarios
+    # Dos modos: (A) shortlist explícita por nombre —comportamiento por defecto—;
+    # (B) barrido por glob con ``--pattern`` tras ``--no-only-scenarios``.
     files: List[Path] = []
     if args.no_only_scenarios:
         files = find_scenarios(scenarios_dir, args.pattern)
@@ -440,7 +532,7 @@ def main():
         print(f"No .xlsx files found in {scenarios_dir} (only_scenarios={args.only_scenarios}, pattern={args.pattern})")
         sys.exit(1)
 
-    # CSV de salida
+    # Ruta del CSV: ``--out`` gana; si no, subcarpeta fija bajo resultados.
     if args.out:
         out_path = Path(args.out)
     elif args.results_dir:
@@ -449,6 +541,7 @@ def main():
         out_path = Path("results_batch.csv")
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    # Orden de columnas fijo para comparar corridas y concatenar resultados en análisis.
     fieldnames = [
         "scenario", "mode", "preset",
         "status", "termination", "solve_time_s", "mipgap", "best_bound",
@@ -466,6 +559,7 @@ def main():
         for fp in files:
             for mode in args.modes:
                 for preset in args.solver_presets:
+                    # Un log por combinación; el nombre codifica escenario + política + preset.
                     log_name = f"{_safe_filename(fp.stem)}__{_safe_filename(mode)}__{_safe_filename(preset)}.gurobi.log"
                     log_file = log_dir / log_name
 
@@ -490,6 +584,8 @@ def main():
                         print(f"[OK] {fp.name} | {mode}:{preset} | cons={metrics.get('n_constraints')} vars={metrics.get('n_vars')} | {metrics['solve_time_s']}s | "
                               f"gap={metrics['mipgap']} | best={metrics['best_bound']} | obj={metrics['objective']} | log={log_file}")
                     except Exception as e:
+                        # Fila mínima para no perder el rastro del fallo en el CSV;
+                        # el resto de columnas quedará vacío en el lector CSV.
                         row = {
                             "scenario": fp.name, "mode": mode, "preset": preset,
                             "status": "ERROR", "termination": str(e)

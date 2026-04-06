@@ -1,15 +1,38 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Directorio raíz del repositorio (dos niveles arriba de src/analysis/)
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+# Directorio de datos externo. Configurable via AP_DATA_DIR.
+_DATA_DIR = Path(os.environ.get("AP_DATA_DIR", str(_REPO_ROOT.parent / "aircraft-positioning-data")))
+
 # =========================
-# CONFIG (EDITA AQUÍ)
+# CONFIG (sobrescribible via variables de entorno)
+#   AP_DATA_DIR   → directorio raíz de datos (por defecto: ../aircraft-positioning-data)
+#   AP_NEW_RESULTS → ruta xlsx con resultados del modelo final
+#   AP_OLD_RESULTS → ruta xlsx con resultados del modelo inicial (para comparar)
+#   AP_OUTDIR      → directorio de salida del análisis
 # =========================
-NEW_RESULTS_XLSX = Path(r"C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning\results_batch_bueno.xlsx")
-OLD_RESULTS_XLSX = Path(r"C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning\results_old.xlsx")
-OUTDIR = Path(r"C:\Users\FX516\OneDrive - Universidad Politécnica de Madrid\UNIVERSIDAD\MASTER\TFM\CODE\aircraft-positioning\results_analysis")
+NEW_RESULTS_XLSX = Path(os.environ.get(
+    "AP_NEW_RESULTS",
+    str(_DATA_DIR / "output" / "results" / "results_batch_bueno.xlsx")
+))
+OLD_RESULTS_XLSX = Path(os.environ.get(
+    "AP_OLD_RESULTS",
+    str(_DATA_DIR / "output" / "results" / "results_old.xlsx")
+))
+OUTDIR = Path(os.environ.get(
+    "AP_OUTDIR",
+    str(_DATA_DIR / "output" / "results_analysis")
+))
 
 NEW_LABEL = "final"
 OLD_LABEL = "initial"
